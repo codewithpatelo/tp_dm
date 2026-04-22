@@ -1,0 +1,169 @@
+{
+  "entrega": "entrega_2",
+  "nombre": "v5",
+  "descripcion": "v5: floor + calidad texto (a_estrenar, reciclado, suite, cuarto servicio, subte) + temporales (pub_year, pub_month)",
+  "timestamp": "2026-04-21T14:23:03",
+  "hostname": "WIN-CMX7BS3",
+  "python": "3.13.7",
+  "in_colab": false,
+  "params": {
+    "filtros": {
+      "caba_l1_estricto": [
+        "Capital Federal",
+        "Ciudad Autónoma de Buenos Aires"
+      ],
+      "caba_l1_ampliado_via_loc2_loc3": true,
+      "property_type": [
+        "casa",
+        "casas",
+        "cochera",
+        "departamento",
+        "departamentos",
+        "ph"
+      ],
+      "operation_type": "venta",
+      "currency_type": "dolares",
+      "price_min": 5000,
+      "price_max": 3000000
+    },
+    "outlier_caps": {
+      "m2": [
+        10,
+        1500
+      ],
+      "n_dormitorios": [
+        0,
+        15
+      ],
+      "n_banos": [
+        0,
+        15
+      ]
+    },
+    "isolation_forest": {
+      "contamination": 0.01,
+      "cols": [
+        "price",
+        "m2",
+        "n_dormitorios",
+        "n_banos"
+      ],
+      "scaled": "StandardScaler"
+    },
+    "imputacion": {
+      "numericas": {
+        "m2": "median (global, fit on train)",
+        "lat": "median (global, fit on train)",
+        "lon": "median (global, fit on train)",
+        "n_dormitorios": "median (global, fit on train)",
+        "n_banos": "median (global, fit on train)",
+        "len_descripcion": "median (global, fit on train)",
+        "n_features": "median (global, fit on train)",
+        "floor": "median (global, fit on train)",
+        "pub_year": "median (global, fit on train)",
+        "pub_month": "median (global, fit on train)"
+      },
+      "categoricas": {
+        "property_type": "most_frequent (fit on train)",
+        "barrio": "most_frequent (fit on train)"
+      },
+      "marcador_m2_was_na": true
+    },
+    "hotdeck": {
+      "key": "description_normalizada",
+      "normalizacion": "lower + sin_acentos + sin_puntuacion + colapsar_espacios + min_20_chars",
+      "agg": "median",
+      "fuente": "train completo (venta + USD)"
+    },
+    "target_encoding_barrio": "DESACTIVADO en v4 (leakage detectado en v2)",
+    "modelo": {
+      "tipo": "RandomForestRegressor",
+      "n_estimators": 500,
+      "max_depth": 50,
+      "random_state": 42,
+      "split": "train_test_split(test_size=0.2, random_state=42)"
+    },
+    "validacion_primaria": "KFold(5, shuffle=True, random_state=42)"
+  },
+  "data": {
+    "train_post_filtro": [
+      123102,
+      18
+    ],
+    "outliers_if_eliminados": 719,
+    "train_post_outliers": [
+      122383,
+      48
+    ],
+    "hotdeck_overrides": 1058,
+    "hotdeck_coverage_pct": 7.85,
+    "hotdeck_overrides_baseline_v1": 925,
+    "hotdeck_coverage_baseline_v1_pct": 6.87,
+    "test_predicciones": 13471,
+    "hotdeck_overrides_aplicados": 1058
+  },
+  "metricas": {
+    "rmse_train": 41295.190121035295,
+    "rmse_holdout": 113951.85605182376,
+    "n_features": 34,
+    "features": [
+      "lat",
+      "lon",
+      "n_dormitorios",
+      "n_banos",
+      "m2",
+      "f_balcon",
+      "f_garage",
+      "f_cochera",
+      "f_pileta",
+      "f_parrilla",
+      "f_aire_acondicionado",
+      "f_calefaccion",
+      "f_gas_natural",
+      "f_internet",
+      "f_seguridad",
+      "f_alarma",
+      "f_gimnasio",
+      "f_jardin",
+      "f_cuarto_de_servicio",
+      "f_cocina_equipada",
+      "f_bodega",
+      "len_descripcion",
+      "n_features",
+      "floor",
+      "is_a_estrenar",
+      "is_reciclado",
+      "has_suite",
+      "has_service_room",
+      "is_near_subway",
+      "pub_year",
+      "pub_month",
+      "m2_was_na",
+      "barrio_id",
+      "property_type_id"
+    ],
+    "rmse_cv5_folds": [
+      114084.18021371735,
+      112285.90371217935,
+      114311.08284161337,
+      110246.31377288414,
+      110776.02126961136
+    ],
+    "rmse_cv5_mean": 112340.70036200111,
+    "rmse_cv5_std": 1658.9037120321227,
+    "pred_p05": 75600.0,
+    "pred_mediana": 161959.5,
+    "pred_p95": 587013.6769999999
+  },
+  "kaggle": {
+    "rmse": null,
+    "submitted_at": null,
+    "leaderboard_position": null
+  },
+  "output": {
+    "csv": "entregas/entrega_2/solucion-entrega2-v5.csv",
+    "csv_md5": "465a63e6a3ed8efe8aaeb4bc1a706c50",
+    "json": "entregas/entrega_2/solucion-entrega2-v5.json",
+    "kaggle_submit_message": "entrega_2/v5: v5: floor + calidad texto (a_estrenar, reciclado, suite, cuarto servicio, subte) + temporales (pub_year, pub_month)"
+  }
+}

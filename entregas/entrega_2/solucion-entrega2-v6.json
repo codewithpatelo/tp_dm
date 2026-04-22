@@ -1,0 +1,272 @@
+{
+  "entrega": "entrega_2",
+  "nombre": "v6",
+  "descripcion": "v6: validacion multi-seed CV5 + holdout temporal + mini-ablation features v5 (sin cambios al pipeline)",
+  "timestamp": "2026-04-21T15:54:41",
+  "hostname": "WIN-CMX7BS3",
+  "python": "3.13.7",
+  "in_colab": false,
+  "params": {
+    "filtros": {
+      "caba_l1_estricto": [
+        "Capital Federal",
+        "Ciudad Autónoma de Buenos Aires"
+      ],
+      "caba_l1_ampliado_via_loc2_loc3": true,
+      "property_type": [
+        "casa",
+        "casas",
+        "cochera",
+        "departamento",
+        "departamentos",
+        "ph"
+      ],
+      "operation_type": "venta",
+      "currency_type": "dolares",
+      "price_min": 5000,
+      "price_max": 3000000
+    },
+    "outlier_caps": {
+      "m2": [
+        10,
+        1500
+      ],
+      "n_dormitorios": [
+        0,
+        15
+      ],
+      "n_banos": [
+        0,
+        15
+      ]
+    },
+    "isolation_forest": {
+      "contamination": 0.01,
+      "cols": [
+        "price",
+        "m2",
+        "n_dormitorios",
+        "n_banos"
+      ],
+      "scaled": "StandardScaler"
+    },
+    "imputacion": {
+      "numericas": {
+        "m2": "median (global, fit on train)",
+        "lat": "median (global, fit on train)",
+        "lon": "median (global, fit on train)",
+        "n_dormitorios": "median (global, fit on train)",
+        "n_banos": "median (global, fit on train)",
+        "len_descripcion": "median (global, fit on train)",
+        "n_features": "median (global, fit on train)",
+        "floor": "median (global, fit on train)",
+        "pub_year": "median (global, fit on train)",
+        "pub_month": "median (global, fit on train)"
+      },
+      "categoricas": {
+        "property_type": "most_frequent (fit on train)",
+        "barrio": "most_frequent (fit on train)"
+      },
+      "marcador_m2_was_na": true
+    },
+    "hotdeck": {
+      "key": "description_normalizada",
+      "normalizacion": "lower + sin_acentos + sin_puntuacion + colapsar_espacios + min_20_chars",
+      "agg": "median",
+      "fuente": "train completo (venta + USD)"
+    },
+    "target_encoding_barrio": "DESACTIVADO en v4 (leakage detectado en v2)",
+    "modelo": {
+      "tipo": "RandomForestRegressor",
+      "n_estimators": 500,
+      "max_depth": 50,
+      "random_state": 42,
+      "split": "train_test_split(test_size=0.2, random_state=42)"
+    },
+    "validacion_primaria": "KFold(5) multi-seed seeds=[42, 7, 2024]",
+    "validacion_secundaria": "Holdout temporal último 20% ordenado por publication_date"
+  },
+  "data": {
+    "train_post_filtro": [
+      123102,
+      18
+    ],
+    "outliers_if_eliminados": 719,
+    "train_post_outliers": [
+      122383,
+      48
+    ],
+    "hotdeck_overrides": 1058,
+    "hotdeck_coverage_pct": 7.85,
+    "hotdeck_overrides_baseline_v1": 925,
+    "hotdeck_coverage_baseline_v1_pct": 6.87,
+    "test_predicciones": 13471,
+    "hotdeck_overrides_aplicados": 1058
+  },
+  "metricas": {
+    "rmse_train": 41295.190121035295,
+    "rmse_holdout": 113951.85605182376,
+    "n_features": 34,
+    "features": [
+      "lat",
+      "lon",
+      "n_dormitorios",
+      "n_banos",
+      "m2",
+      "f_balcon",
+      "f_garage",
+      "f_cochera",
+      "f_pileta",
+      "f_parrilla",
+      "f_aire_acondicionado",
+      "f_calefaccion",
+      "f_gas_natural",
+      "f_internet",
+      "f_seguridad",
+      "f_alarma",
+      "f_gimnasio",
+      "f_jardin",
+      "f_cuarto_de_servicio",
+      "f_cocina_equipada",
+      "f_bodega",
+      "len_descripcion",
+      "n_features",
+      "floor",
+      "is_a_estrenar",
+      "is_reciclado",
+      "has_suite",
+      "has_service_room",
+      "is_near_subway",
+      "pub_year",
+      "pub_month",
+      "m2_was_na",
+      "barrio_id",
+      "property_type_id"
+    ],
+    "rmse_cv5_folds": [
+      114084.18021371735,
+      112285.90371217935,
+      114311.08284161337,
+      110246.31377288414,
+      110776.02126961136,
+      112222.15746250244,
+      113363.02725323367,
+      113386.16705984955,
+      114121.66731066612,
+      107312.65141160338,
+      108657.36339661866,
+      108775.8841030696,
+      117097.31238985626,
+      117012.13483793022,
+      110902.50274482956
+    ],
+    "rmse_cv5_mean": 112303.62465201101,
+    "rmse_cv5_std": 2794.4644081418182,
+    "rmse_cv5_per_seed": {
+      "42": {
+        "mean": 112340.70036200111,
+        "std": 1658.9037120321227,
+        "folds": [
+          114084.18021371735,
+          112285.90371217935,
+          114311.08284161337,
+          110246.31377288414,
+          110776.02126961136
+        ]
+      },
+      "7": {
+        "mean": 112081.13409957103,
+        "std": 2460.4248252991665,
+        "folds": [
+          112222.15746250244,
+          113363.02725323367,
+          113386.16705984955,
+          114121.66731066612,
+          107312.65141160338
+        ]
+      },
+      "2024": {
+        "mean": 112489.03949446084,
+        "std": 3812.635154374831,
+        "folds": [
+          108657.36339661866,
+          108775.8841030696,
+          117097.31238985626,
+          117012.13483793022,
+          110902.50274482956
+        ]
+      }
+    },
+    "rmse_holdout_temporal": 122794.86116929038,
+    "holdout_temporal_n_train": 12956,
+    "holdout_temporal_n_val": 3240,
+    "holdout_temporal_cut_date": "2025-12",
+    "ablation_v5": [
+      {
+        "subset": "v6.A_baseline_v4",
+        "extra_features": [],
+        "n_features_total": 26,
+        "cv5_mean": 117218.50036130639,
+        "cv5_std": 2392.4975309692536,
+        "holdout_temporal": 122780.32231050917,
+        "delta_cv5_vs_v4": 0.0,
+        "delta_temporal_vs_v4": 0.0
+      },
+      {
+        "subset": "v6.B_solo_floor",
+        "extra_features": [
+          "floor"
+        ],
+        "n_features_total": 27,
+        "cv5_mean": 116752.05831510722,
+        "cv5_std": 2510.3755139679897,
+        "holdout_temporal": 121677.60410615493,
+        "delta_cv5_vs_v4": -466.44204619916854,
+        "delta_temporal_vs_v4": -1102.7182043542416
+      },
+      {
+        "subset": "v6.C_solo_temporales",
+        "extra_features": [
+          "pub_year",
+          "pub_month"
+        ],
+        "n_features_total": 28,
+        "cv5_mean": 117266.09906940025,
+        "cv5_std": 2360.833050569621,
+        "holdout_temporal": 126165.3922359342,
+        "delta_cv5_vs_v4": 47.59870809386484,
+        "delta_temporal_vs_v4": 3385.069925425021
+      },
+      {
+        "subset": "v6.D_solo_booleanos",
+        "extra_features": [
+          "is_a_estrenar",
+          "is_reciclado",
+          "has_suite",
+          "has_service_room",
+          "is_near_subway"
+        ],
+        "n_features_total": 31,
+        "cv5_mean": 112766.56971692973,
+        "cv5_std": 1554.4592760359026,
+        "holdout_temporal": 122187.39069436229,
+        "delta_cv5_vs_v4": -4451.9306443766545,
+        "delta_temporal_vs_v4": -592.9316161468887
+      }
+    ],
+    "pred_p05": 75600.0,
+    "pred_mediana": 161959.5,
+    "pred_p95": 587013.6769999999
+  },
+  "kaggle": {
+    "rmse": null,
+    "submitted_at": null,
+    "leaderboard_position": null
+  },
+  "output": {
+    "csv": "entregas/entrega_2/solucion-entrega2-v6.csv",
+    "csv_md5": "b7fd328d1ea4a903d51db1e059558834",
+    "json": "entregas/entrega_2/solucion-entrega2-v6.json",
+    "kaggle_submit_message": "entrega_2/v6: v6: validacion multi-seed CV5 + holdout temporal + mini-ablation features v5 (sin cambios al pipeline)"
+  }
+}

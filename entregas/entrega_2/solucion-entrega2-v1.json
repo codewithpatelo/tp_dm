@@ -1,0 +1,128 @@
+{
+  "entrega": "entrega_2",
+  "nombre": "v1",
+  "descripcion": "Filtro CABA ampliado + parseo features + outliers IQR + IsolationForest(0.01) + imputacion mediana/moda + Hot Deck por description",
+  "timestamp": "2026-04-20T17:55:45",
+  "hostname": "WIN-CMX7BS3",
+  "python": "3.13.7",
+  "in_colab": false,
+  "params": {
+    "filtros": {
+      "caba_l1_estricto": [
+        "Capital Federal",
+        "Ciudad Autónoma de Buenos Aires"
+      ],
+      "caba_l1_ampliado_via_loc2_loc3": true,
+      "property_type": [
+        "casa",
+        "casas",
+        "cochera",
+        "departamento",
+        "departamentos",
+        "ph"
+      ],
+      "operation_type": "venta",
+      "currency_type": "dolares",
+      "price_min": 5000,
+      "price_max": 3000000
+    },
+    "outlier_caps": {
+      "m2": [
+        10,
+        1500
+      ],
+      "n_dormitorios": [
+        0,
+        15
+      ],
+      "n_banos": [
+        0,
+        15
+      ]
+    },
+    "isolation_forest": {
+      "contamination": 0.01,
+      "cols": [
+        "price",
+        "m2",
+        "n_dormitorios",
+        "n_banos"
+      ],
+      "scaled": "StandardScaler"
+    },
+    "hotdeck": {
+      "key": "description",
+      "agg": "median",
+      "fuente": "train completo (venta + USD)"
+    },
+    "modelo": {
+      "tipo": "RandomForestRegressor",
+      "n_estimators": 500,
+      "max_depth": 50,
+      "random_state": 42,
+      "split": "train_test_split(test_size=0.2, random_state=42)"
+    }
+  },
+  "data": {
+    "train_post_filtro": [
+      123102,
+      18
+    ],
+    "outliers_if_eliminados": 719,
+    "train_post_outliers": [
+      122383,
+      40
+    ],
+    "hotdeck_overrides": 925,
+    "hotdeck_coverage_pct": 6.87,
+    "test_predicciones": 13471,
+    "hotdeck_overrides_aplicados": 925
+  },
+  "metricas": {
+    "rmse_train": 43108.09739787597,
+    "rmse_holdout": 118866.9653472392,
+    "n_features": 26,
+    "features": [
+      "lat",
+      "lon",
+      "n_dormitorios",
+      "n_banos",
+      "m2",
+      "f_balcon",
+      "f_garage",
+      "f_cochera",
+      "f_pileta",
+      "f_parrilla",
+      "f_aire_acondicionado",
+      "f_calefaccion",
+      "f_gas_natural",
+      "f_internet",
+      "f_seguridad",
+      "f_alarma",
+      "f_gimnasio",
+      "f_jardin",
+      "f_cuarto_de_servicio",
+      "f_cocina_equipada",
+      "f_bodega",
+      "len_descripcion",
+      "n_features",
+      "m2_was_na",
+      "barrio_id",
+      "property_type_id"
+    ],
+    "pred_p05": 76017.48300000001,
+    "pred_mediana": 162498.17,
+    "pred_p95": 573501.662
+  },
+  "kaggle": {
+    "rmse": null,
+    "submitted_at": null,
+    "leaderboard_position": null
+  },
+  "output": {
+    "csv": "entregas/entrega_2/solucion-entrega2-v1.csv",
+    "csv_md5": "4797c5796293358ece0a55f6b6e6e763",
+    "json": "entregas/entrega_2/solucion-entrega2-v1.json",
+    "kaggle_submit_message": "entrega_2/v1: Filtro CABA ampliado + parseo features + outliers IQR + IsolationForest(0.01) + imputacion mediana/moda + Hot Deck por description"
+  }
+}

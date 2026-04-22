@@ -1,0 +1,44 @@
+# Secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+**/kaggle.json
+
+# Datasets pesados (no commitear, vienen aparte)
+datasets/*.db
+datasets/*.csv
+datasets/*.parquet
+
+# Outputs de corridas (se regeneran con run_entrega.py)
+entregas/**/*.executed.ipynb
+entregas/**/*.failed.ipynb
+
+# Auxiliares de exploración (locales, no parte del entregable)
+_inspect_nb.py
+_check_env.py
+_rewrite_env.py
+_explore.py
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env_venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# IDE / OS
+.vscode/
+.idea/
+.cursor/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Notebook outputs grandes (si en algún momento querés stripear, dejarlo manual)

@@ -1,0 +1,34 @@
+# Entrega Parcial 2 — Patricio Gerpe
+
+Partí de los filtros de la Entrega 1 para que train y test describieran el mismo problema: venta, dólares, CABA y tipos de propiedad presentes en `a_predecir`. Con esa alineación quedaron 123 102 filas de entrenamiento; recién sobre ese universo tuvo sentido discutir atípicos y faltantes.
+
+## A. Datos Atípicos (outliers)
+
+**A.1** Al mirar las variables creadas desde `features`, la que más me llamó la atención fue `m2`: aparecieron superficies incompatibles con el mercado objetivo, mientras `n_dormitorios` y `n_banos` también mostraban extremos pero mucho menos severos. Eso me hizo preguntarme si convenía borrar filas completas o sólo corregir atributos evidentemente sucios. Mi hipótesis fue que, cuando el error está concentrado en una columna derivada del texto, conviene preservar la fila porque todavía conserva señal geográfica y categórica útil para el modelo.
+
+**A.2** Esa distinción me llevó a separar dos problemas. Para errores univariados de atributo, convertí a faltante los valores fuera de `m2 ∈ [10,1500]`, `n_dormitorios ∈ [0,15]` y `n_banos ∈ [0,15]`; así evité que un parseo absurdo dominara los splits del Random Forest y dejé que la imputación de B los resolviera después. Con ese problema acotado, todavía quedaban publicaciones globalmente incoherentes, así que usé `IsolationForest` sobre `price`, `m2`, `n_dormitorios` y `n_banos`, escalados, con `contamination=0.01`. Elegí 1 % porque el EDA mostraba una minoría clara de casos raros, no una fracción masiva, y terminé eliminando 719 filas, pasando de 123 102 a 122 383.
+
+**A.3** Con esa estrategia ya definida, la variable que presentó más outliers fue **`m2`**: fue la única que necesitó un capado amplio y explícito en **[10, 1500]**, consistente con errores de extracción desde texto más que con propiedades reales. Por eso el enfoque adecuado para esa columna no fue descartar masivamente registros, sino **mandar los extremos a `NaN` e imputarlos después con mediana**, preservando la observación completa para el modelo.
+
+## B. Datos Faltantes
+
+**B.1** Esos `NaN` que dejó el tratamiento de outliers se sumaron a faltantes ya presentes en `lat`, `lon` y en variables derivadas, así que el problema dejó de ser “limpiar columnas” y pasó a ser “cómo completar sin inventar señal”. Como en clase vimos que el mecanismo de ausencia puede cargar información, decidí no sólo imputar sino también marcar la falta cuando eso pudiera ayudar al modelo.
+
+**B.2** Con esa idea, usé mediana global entrenada sólo en train para `m2`, `lat`, `lon`, `n_dormitorios`, `n_banos`, `len_descripcion` y `n_features`, y moda para `property_type` y `barrio`. Además agregué `m2_was_na`, para que el modelo distinguiera una superficie observada de una reconstruida. Sobre el test, esa misma lógica me empujó a usar **Hot Deck** por `description` normalizada, técnica vista en clase para copiar valores entre casos equivalentes: el override cubrió 1 058 publicaciones, es decir 7.85 % del test, contra 925 casos y 6.87 % en la versión base v1.
+
+**B.3** El fracaso de v2 y v3 me enseñó por qué una imputación o completado puede subir el error: no siempre falta “potencia”, a veces sobra señal espuria. En v2 agregué precios medianos por barrio y el Kaggle empeoró de 93 167.324 a 96 891.059; en v3 imputé `lat/lon` con mediana por barrio esperando recuperar estructura espacial, pero volvió a empeorar a 97 423.121. Mi lectura es que ambas variantes introdujeron leakage o una geografía demasiado optimista para train que no generalizó al test. Por eso en v4 volví a una imputación más sobria y mantuve sólo el Hot Deck, que sí replica casos observados.
+
+## C. Modelo (Predicción)
+
+Todo lo anterior se refleja en la comparación relevante, que no es entre subversiones de esta entrega sino contra la entrega anterior:
+
+| Entrega | Mejor submission | RMSE Kaggle |
+|---|---|---:|
+| Entrega 1 | `solucion (12).csv` | 166 979.008 |
+| Entrega 2 | `v4` | **93 151.157** |
+
+La mejora de 73 828 puntos no vino de tocar el modelo —la consigna lo prohibía— sino de darle una entrada más sana: 26 variables, 719 filas multivariadamente anómalas removidas y un Hot Deck más preciso. Como además la variabilidad de un holdout único resultó alta, adopté CV5 como criterio principal; en la corrida campeona obtuve **117 218.50 ± 2 392**, y recién después confirmé en Kaggle el nuevo mejor score.
+
+## D. Entrega
+
+Entrego la corrida **v4**, actual campeona, con RMSE Kaggle **93 151.157**. El aprendizaje central de esta entrega fue que limpiar e imputar no significa agregar la mayor cantidad posible de información, sino conservar sólo la que sigue siendo creíble cuando sale del train y llega a Kaggle.

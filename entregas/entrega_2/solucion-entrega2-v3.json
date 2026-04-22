@@ -1,0 +1,143 @@
+{
+  "entrega": "entrega_2",
+  "nombre": "v3",
+  "descripcion": "H3: imputacion lat/lon por mediana de BARRIO (no global). Justifica: lat+lon = 18% de feat_importances en v2; mediana global aplasta señal geográfica.",
+  "timestamp": "2026-04-21T11:16:47",
+  "hostname": "WIN-CMX7BS3",
+  "python": "3.13.7",
+  "in_colab": false,
+  "params": {
+    "filtros": {
+      "caba_l1_estricto": [
+        "Capital Federal",
+        "Ciudad Autónoma de Buenos Aires"
+      ],
+      "caba_l1_ampliado_via_loc2_loc3": true,
+      "property_type": [
+        "casa",
+        "casas",
+        "cochera",
+        "departamento",
+        "departamentos",
+        "ph"
+      ],
+      "operation_type": "venta",
+      "currency_type": "dolares",
+      "price_min": 5000,
+      "price_max": 3000000
+    },
+    "outlier_caps": {
+      "m2": [
+        10,
+        1500
+      ],
+      "n_dormitorios": [
+        0,
+        15
+      ],
+      "n_banos": [
+        0,
+        15
+      ]
+    },
+    "isolation_forest": {
+      "contamination": 0.01,
+      "cols": [
+        "price",
+        "m2",
+        "n_dormitorios",
+        "n_banos"
+      ],
+      "scaled": "StandardScaler"
+    },
+    "imputacion_geo": {
+      "estrategia": "mediana_por_barrio_train_con_fallback_global",
+      "fuente": "df_ent (train filtrado, post-outliers IF)",
+      "fallback_global_lat": -34.59702110290527,
+      "fallback_global_lon": -58.435909271240234,
+      "barrios_con_lat_train": 52,
+      "barrios_con_lon_train": 53
+    },
+    "hotdeck": {
+      "key": "description",
+      "agg": "median",
+      "fuente": "train completo (venta + USD)"
+    },
+    "modelo": {
+      "tipo": "RandomForestRegressor",
+      "n_estimators": 500,
+      "max_depth": 50,
+      "random_state": 42,
+      "split": "train_test_split(test_size=0.2, random_state=42)"
+    }
+  },
+  "data": {
+    "train_post_filtro": [
+      123102,
+      18
+    ],
+    "outliers_if_eliminados": 719,
+    "train_post_outliers": [
+      122383,
+      40
+    ],
+    "lat_nan_train_pre_imp": 77007,
+    "lon_nan_train_pre_imp": 77011,
+    "lat_nan_test_pre_imp": 9947,
+    "lon_nan_test_pre_imp": 9947,
+    "hotdeck_overrides": 925,
+    "hotdeck_coverage_pct": 6.87,
+    "test_predicciones": 13471,
+    "hotdeck_overrides_aplicados": 925
+  },
+  "metricas": {
+    "rmse_train": 42410.94121972085,
+    "rmse_holdout": 117080.27238837615,
+    "n_features": 28,
+    "features": [
+      "lat",
+      "lon",
+      "n_dormitorios",
+      "n_banos",
+      "m2",
+      "f_balcon",
+      "f_garage",
+      "f_cochera",
+      "f_pileta",
+      "f_parrilla",
+      "f_aire_acondicionado",
+      "f_calefaccion",
+      "f_gas_natural",
+      "f_internet",
+      "f_seguridad",
+      "f_alarma",
+      "f_gimnasio",
+      "f_jardin",
+      "f_cuarto_de_servicio",
+      "f_cocina_equipada",
+      "f_bodega",
+      "len_descripcion",
+      "n_features",
+      "m2_was_na",
+      "barrio_id",
+      "property_type_id",
+      "precio_mediano_barrio",
+      "precio_mediano_barrio_tipo"
+    ],
+    "pred_p05": 75572.46611294261,
+    "pred_mediana": 162953.538,
+    "pred_p95": 575632.5963333333
+  },
+  "kaggle": {
+    "rmse": 97423.121,
+    "submitted_at": null,
+    "leaderboard_position": null,
+    "recorded_at": "2026-04-21T11:40:12"
+  },
+  "output": {
+    "csv": "entregas/entrega_2/solucion-entrega2-v3.csv",
+    "csv_md5": "2ba4d1d794e7ae6d5bbcca55e0b9abf6",
+    "json": "entregas/entrega_2/solucion-entrega2-v3.json",
+    "kaggle_submit_message": "entrega_2/v3: H3: imputacion lat/lon por mediana de BARRIO (no global). Justifica: lat+lon = 18% de feat_importances en v2; mediana global aplasta señal geográfica."
+  }
+}
