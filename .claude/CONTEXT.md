@@ -437,6 +437,33 @@ restricciones del TP (clases ≤ 5, modelo fijo, sin externos):
   es ~30 % del test; ganar 500 puntos contra esa muestra puede ser
   ruido. La validación local (CV5 multi-seed + holdout temporal) es la
   fuente de verdad, no el LB público.
+- **Procesar train y test en simultáneo, NUNCA mergearlos antes de
+  procesar** (regla del profe, generalizable). Dos formas de hacerlo
+  bien — adoptamos la segunda:
+  1. _Merge train + test → procesar → volver a separar_: válido para
+     transformaciones que no dependen del target (parsear `features`,
+     normalizar strings, marcar `m2_was_na`). El profe avisa que es
+     fácil meter la pata acá: cualquier estadístico ajustado sobre el
+     merge (mediana, moda, cuantiles, KNN, encoding) usa información
+     del test → leakage. **No usamos esta forma.**
+  2. _Procesamiento en paralelo, fit on train + transform on both_:
+     todos los estimadores con estado (`SimpleImputer`,
+     `StandardScaler`, `IsolationForest`, `KNNImputer`, `factorize`,
+     vocabularios de Hot Deck, centroides geográficos, etc.) se
+     fittean **sólo con train** y se aplican a ambos. Los pasos sin
+     estado (parsing, regex, marcadores) corren con el mismo código
+     dos veces, una sobre cada dataframe. **Esta es la forma que
+     usamos en v4 de E2 y a partir de ahí.**
+  - **Nunca sobreescribir los archivos originales** (`entrenamiento.db`,
+    `a_predecir.csv`). Las mutaciones in-place sobre los DataFrames en
+    RAM son OK siempre que la lectura se haga al inicio de cada corrida.
+  - **Caso límite a vigilar**: el Hot Deck por `description` arma su
+    diccionario sobre el train completo. En CV5 eso da al fold de
+    validación acceso indirecto al `price` del fold de train del
+    propio Hot Deck — sobreestima el rendimiento local. En producción
+    (Kaggle test sin price) no hay leak. No urgente; cuando importe,
+    armar el Hot Deck dict por fold (más caro). Heredamos el patrón a
+    v6+ de E3 (cleanup de barrio cascada Hot Deck → KNN).
 - **Outliers ridículos en una celda → impute esa celda, no descartes la
   fila** (regla del profe, generalizable). Si una propiedad tiene
   `n_banos = 800` o `n_cocheras = 1 000`, el resto de las columnas
