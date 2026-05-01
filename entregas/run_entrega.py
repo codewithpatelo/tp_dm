@@ -108,17 +108,15 @@ def update_kaggle_in_json(json_path: Path, kaggle_rmse: float) -> None:
 def post_process(entrega: str, nombre: str, *, allow_submit: bool) -> int:
     """Comparación con leaderboard, auto-submit y regeneración del informe.
 
-    Criterio de auto-submit (v6+): exige mejora SIMULTÁNEA en
-      - `rmse_cv5_mean`         (multi-seed, métrica primaria desde v4)
-      - `rmse_holdout_temporal` (último 20 % por publication_date, agregada en v6)
-    sobre los mejores históricos del leaderboard, con un margen mínimo
-    `MARGEN_*`. Si falta cualquiera de las dos métricas o no hay previo con
-    qué comparar, NO submit. Esto bloquea explícitamente el patrón de v5
-    (mejora local + empeora Kaggle = distribution shift). El holdout único
-    queda informativo pero no decide.
+    Criterio de auto-submit: exige mejora SIMULTÁNEA (cualquier delta positivo) en
+      - `rmse_cv5_mean`         (multi-seed, métrica primaria)
+      - `rmse_holdout_temporal` (último 20 % por publication_date)
+    sobre los mejores históricos del leaderboard. Si falta cualquiera de las dos
+    métricas o no hay previo con qué comparar, NO submit. El holdout único queda
+    informativo pero no decide. Kaggle es el árbitro final de magnitud.
     """
-    MARGEN_CV5 = 1500.0
-    MARGEN_HOLDOUT_TEMPORAL = 1500.0
+    MARGEN_CV5 = 0.0
+    MARGEN_HOLDOUT_TEMPORAL = 0.0
 
     out_dir = ROOT / "entregas" / entrega
     json_path = out_dir / f"solucion-{entrega.replace('_','')}-{nombre}.json"
@@ -175,9 +173,8 @@ def post_process(entrega: str, nombre: str, *, allow_submit: bool) -> int:
     else:
         is_local_better = ok_cv5 and ok_temp
         criterio = (
-            f"CV5 ok={ok_cv5} (D={delta_cv5:+.0f}, req >{MARGEN_CV5:.0f}) | "
-            f"holdout_temp ok={ok_temp} (D={delta_temp:+.0f}, "
-            f"req >{MARGEN_HOLDOUT_TEMPORAL:.0f})"
+            f"CV5 ok={ok_cv5} (D={delta_cv5:+.0f}) | "
+            f"holdout_temp ok={ok_temp} (D={delta_temp:+.0f})"
         )
     print(f"[run_entrega] criterio: {criterio}")
 

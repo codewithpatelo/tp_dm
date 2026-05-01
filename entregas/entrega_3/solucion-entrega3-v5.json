@@ -1,0 +1,239 @@
+{
+  "entrega": "entrega_3",
+  "nombre": "v5",
+  "descripcion": "Distancias a top-10 barrios + m2_per_room/bano ratios + BallTree density k=10",
+  "timestamp": "2026-05-01T11:55:19",
+  "hostname": "WIN-CMX7BS3",
+  "python": "3.13.7",
+  "in_colab": false,
+  "params": {
+    "filtros": {
+      "caba_l1_estricto": [
+        "Capital Federal",
+        "Ciudad Autónoma de Buenos Aires"
+      ],
+      "caba_l1_ampliado_via_loc2_loc3": true,
+      "property_type": [
+        "casa",
+        "casas",
+        "cochera",
+        "departamento",
+        "departamentos",
+        "ph"
+      ],
+      "operation_type": "venta",
+      "currency_type": "dolares",
+      "price_min": 5000,
+      "price_max": 3000000
+    },
+    "outlier_caps": {
+      "m2": [
+        10,
+        1500
+      ],
+      "n_dormitorios": [
+        0,
+        15
+      ],
+      "n_banos": [
+        0,
+        15
+      ]
+    },
+    "isolation_forest": {
+      "contamination": 0.01,
+      "cols": [
+        "price",
+        "m2",
+        "n_dormitorios",
+        "n_banos"
+      ],
+      "scaled": "StandardScaler"
+    },
+    "imputacion": {
+      "numericas": {
+        "m2": "median (global, fit on train)",
+        "lat": "median (global, fit on train)",
+        "lon": "median (global, fit on train)",
+        "n_dormitorios": "median (global, fit on train)",
+        "n_banos": "median (global, fit on train)",
+        "len_descripcion": "median (global, fit on train)",
+        "n_features": "median (global, fit on train)",
+        "rooms": "median (global, fit on train)"
+      },
+      "categoricas": {
+        "property_type": "most_frequent (fit on train)",
+        "barrio": "most_frequent (fit on train)"
+      },
+      "marcador_m2_was_na": true
+    },
+    "fe_version": "v5-parseo-dual+barrio-cleanup+distancias",
+    "fe_parseo_dual": {
+      "descripcion": "fallback description cuando features da NaN en m2/dormitorios/banos",
+      "nueva_feature": "rooms (ambientes desde description, patron X amb)",
+      "rescatados_train": {
+        "m2": 10844,
+        "n_dormitorios": 3168,
+        "n_banos": 2293
+      },
+      "rescatados_test": {
+        "m2": 29,
+        "n_dormitorios": 80,
+        "n_banos": 55
+      }
+    },
+    "fe_barrio_cleanup": {
+      "descripcion": "cascade HotDeck(desc_norm) -> KNN(lat/lon, k=5) -> desconocido; escasos<=10 -> barrio_raro",
+      "basura_labels": [
+        "buenos aires",
+        "capital federal",
+        "ciudad autonoma de buenos aires",
+        "ciudad de buenos aires"
+      ],
+      "knn_n_train": 93133,
+      "hd_dict_size": 83532,
+      "n_barrios_escasos": 13
+    },
+    "fe_distancias": {
+      "descripcion": "m2_per_room/bano + distancias eucl. a top-10 barrios + BallTree density k=10",
+      "n_centros": 10,
+      "centros": [
+        "Palermo",
+        "Belgrano",
+        "Caballito",
+        "Recoleta",
+        "Centro",
+        "Villa Urquiza",
+        "Nuñez",
+        "Almagro",
+        "Villa Crespo",
+        "Flores"
+      ],
+      "dist_cols": [
+        "dist_palermo",
+        "dist_belgrano",
+        "dist_caballito",
+        "dist_recoleta",
+        "dist_centro",
+        "dist_villa_urquiza",
+        "dist_nunez",
+        "dist_almagro",
+        "dist_villa_crespo",
+        "dist_flores"
+      ],
+      "density_col": "density_k10"
+    },
+    "dim_reduction_version": "v1-placeholder",
+    "hotdeck": {
+      "key": "description_normalizada",
+      "normalizacion": "lower + sin_acentos + sin_puntuacion + colapsar_espacios + min_20_chars",
+      "agg": "median",
+      "fuente": "train completo (venta + USD)"
+    },
+    "target_encoding_barrio": "DESACTIVADO (leakage E2-v2/v3)",
+    "modelo": {
+      "tipo": "RandomForestRegressor",
+      "n_estimators": 500,
+      "max_depth": "50",
+      "random_state": 42,
+      "split": "train_test_split(test_size=0.2, random_state=42)"
+    },
+    "validacion_primaria": "KFold(5) x 3 seeds"
+  },
+  "data": {
+    "train_post_filtro": [
+      123102,
+      18
+    ],
+    "outliers_if_eliminados": 760,
+    "train_post_outliers": [
+      122342,
+      41
+    ],
+    "hotdeck_overrides": 1058,
+    "hotdeck_coverage_pct": 7.85,
+    "test_predicciones": 13471,
+    "hotdeck_overrides_aplicados": 1058
+  },
+  "metricas": {
+    "rmse_train": 41661.12043435517,
+    "rmse_holdout": 116949.34797310739,
+    "n_features": 40,
+    "features": [
+      "lat",
+      "lon",
+      "n_dormitorios",
+      "n_banos",
+      "m2",
+      "f_balcon",
+      "f_garage",
+      "f_cochera",
+      "f_pileta",
+      "f_parrilla",
+      "f_aire_acondicionado",
+      "f_calefaccion",
+      "f_gas_natural",
+      "f_internet",
+      "f_seguridad",
+      "f_alarma",
+      "f_gimnasio",
+      "f_jardin",
+      "f_cuarto_de_servicio",
+      "f_cocina_equipada",
+      "f_bodega",
+      "rooms",
+      "len_descripcion",
+      "n_features",
+      "m2_was_na",
+      "m2_per_room",
+      "m2_per_bano",
+      "dist_palermo",
+      "dist_belgrano",
+      "dist_caballito",
+      "dist_recoleta",
+      "dist_centro",
+      "dist_villa_urquiza",
+      "dist_nunez",
+      "dist_almagro",
+      "dist_villa_crespo",
+      "dist_flores",
+      "density_k10",
+      "barrio_id",
+      "property_type_id"
+    ],
+    "rmse_cv5_folds": [
+      112627.3487291089,
+      112885.83374467137,
+      113750.70487557439,
+      111888.86665288953,
+      110434.57916981743,
+      111341.85986669618,
+      116578.18553722741,
+      115987.06956586173,
+      113055.86491606904,
+      107843.8649284387,
+      112353.45112728786,
+      112740.74296549094,
+      110861.67186518396,
+      114020.84519744173,
+      110250.32332086287
+    ],
+    "rmse_cv5_mean": 112441.41416417481,
+    "rmse_cv5_std": 2138.1611795440917,
+    "rmse_holdout_temporal": 111293.0028616283,
+    "pred_p05": 76000.0,
+    "pred_mediana": 162000.0,
+    "pred_p95": 569500.0
+  },
+  "kaggle": {
+    "rmse": null,
+    "submitted_at": null,
+    "leaderboard_position": null
+  },
+  "output": {
+    "csv": "entregas/entrega_3/solucion-entrega3-v5.csv",
+    "csv_md5": "fff18e841268425e6ba20aee750f2766",
+    "json": "entregas/entrega_3/solucion-entrega3-v5.json",
+    "kaggle_submit_message": "entrega_3/v5: Distancias a top-10 barrios + m2_per_room/bano ratios + BallTree density k=10"
+  }
+}

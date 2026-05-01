@@ -1,0 +1,15 @@
+{"key": "s0_f0", "combo": {"seed": 0, "fold": 0}, "result": {"rmse": 113051.91868707316}, "fit_time_s": 80.9, "ts": "2026-05-01T10:53:15"}
+{"key": "s0_f1", "combo": {"seed": 0, "fold": 1}, "result": {"rmse": 112943.13818891617}, "fit_time_s": 1207.6, "ts": "2026-05-01T11:13:22"}
+{"key": "s0_f2", "combo": {"seed": 0, "fold": 2}, "result": {"rmse": 114243.63043698597}, "fit_time_s": 342.9, "ts": "2026-05-01T11:19:05"}
+{"key": "s0_f3", "combo": {"seed": 0, "fold": 3}, "result": {"rmse": 110727.08353795996}, "fit_time_s": 312.9, "ts": "2026-05-01T11:24:18"}
+{"key": "s0_f4", "combo": {"seed": 0, "fold": 4}, "result": {"rmse": 110437.96655689926}, "fit_time_s": 75.2, "ts": "2026-05-01T11:25:33"}
+{"key": "s1_f0", "combo": {"seed": 1, "fold": 0}, "result": {"rmse": 111272.07054278944}, "fit_time_s": 76.4, "ts": "2026-05-01T11:26:50"}
+{"key": "s1_f1", "combo": {"seed": 1, "fold": 1}, "result": {"rmse": 115974.93483452145}, "fit_time_s": 72.8, "ts": "2026-05-01T11:28:02"}
+{"key": "s1_f2", "combo": {"seed": 1, "fold": 2}, "result": {"rmse": 114624.98141537426}, "fit_time_s": 158.5, "ts": "2026-05-01T11:30:41"}
+{"key": "s1_f3", "combo": {"seed": 1, "fold": 3}, "result": {"rmse": 114096.28476286014}, "fit_time_s": 119.4, "ts": "2026-05-01T11:32:40"}
+{"key": "s1_f4", "combo": {"seed": 1, "fold": 4}, "result": {"rmse": 108439.6131339046}, "fit_time_s": 75.7, "ts": "2026-05-01T11:33:56"}
+{"key": "s2_f0", "combo": {"seed": 2, "fold": 0}, "result": {"rmse": 111405.90535819772}, "fit_time_s": 73.6, "ts": "2026-05-01T11:35:10"}
+{"key": "s2_f1", "combo": {"seed": 2, "fold": 1}, "result": {"rmse": 114147.03387481127}, "fit_time_s": 75.0, "ts": "2026-05-01T11:36:25"}
+{"key": "s2_f2", "combo": {"seed": 2, "fold": 2}, "result": {"rmse": 110004.17362033634}, "fit_time_s": 72.4, "ts": "2026-05-01T11:37:37"}
+{"key": "s2_f3", "combo": {"seed": 2, "fold": 3}, "result": {"rmse": 114080.867828466}, "fit_time_s": 76.3, "ts": "2026-05-01T11:38:53"}
+{"key": "s2_f4", "combo": {"seed": 2, "fold": 4}, "result": {"rmse": 109055.11004029012}, "fit_time_s": 116.5, "ts": "2026-05-01T11:40:50"}

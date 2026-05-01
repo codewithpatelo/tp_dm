@@ -1,0 +1,198 @@
+{
+  "entrega": "entrega_3",
+  "nombre": "v4",
+  "descripcion": "Barrio cleanup: cascade HotDeck(desc) -> KNN(lat/lon k=5) -> desconocido; barrios escasos<=10 -> barrio_raro",
+  "timestamp": "2026-05-01T10:44:04",
+  "hostname": "WIN-CMX7BS3",
+  "python": "3.13.7",
+  "in_colab": false,
+  "params": {
+    "filtros": {
+      "caba_l1_estricto": [
+        "Capital Federal",
+        "Ciudad Autónoma de Buenos Aires"
+      ],
+      "caba_l1_ampliado_via_loc2_loc3": true,
+      "property_type": [
+        "casa",
+        "casas",
+        "cochera",
+        "departamento",
+        "departamentos",
+        "ph"
+      ],
+      "operation_type": "venta",
+      "currency_type": "dolares",
+      "price_min": 5000,
+      "price_max": 3000000
+    },
+    "outlier_caps": {
+      "m2": [
+        10,
+        1500
+      ],
+      "n_dormitorios": [
+        0,
+        15
+      ],
+      "n_banos": [
+        0,
+        15
+      ]
+    },
+    "isolation_forest": {
+      "contamination": 0.01,
+      "cols": [
+        "price",
+        "m2",
+        "n_dormitorios",
+        "n_banos"
+      ],
+      "scaled": "StandardScaler"
+    },
+    "imputacion": {
+      "numericas": {
+        "m2": "median (global, fit on train)",
+        "lat": "median (global, fit on train)",
+        "lon": "median (global, fit on train)",
+        "n_dormitorios": "median (global, fit on train)",
+        "n_banos": "median (global, fit on train)",
+        "len_descripcion": "median (global, fit on train)",
+        "n_features": "median (global, fit on train)",
+        "rooms": "median (global, fit on train)"
+      },
+      "categoricas": {
+        "property_type": "most_frequent (fit on train)",
+        "barrio": "most_frequent (fit on train)"
+      },
+      "marcador_m2_was_na": true
+    },
+    "fe_version": "v4-parseo-dual+barrio-cleanup",
+    "fe_parseo_dual": {
+      "descripcion": "fallback description cuando features da NaN en m2/dormitorios/banos",
+      "nueva_feature": "rooms (ambientes desde description, patron X amb)",
+      "rescatados_train": {
+        "m2": 10844,
+        "n_dormitorios": 3168,
+        "n_banos": 2293
+      },
+      "rescatados_test": {
+        "m2": 29,
+        "n_dormitorios": 80,
+        "n_banos": 55
+      }
+    },
+    "fe_barrio_cleanup": {
+      "descripcion": "cascade HotDeck(desc_norm) -> KNN(lat/lon, k=5) -> desconocido; escasos<=10 -> barrio_raro",
+      "basura_labels": [
+        "buenos aires",
+        "capital federal",
+        "ciudad autonoma de buenos aires",
+        "ciudad de buenos aires"
+      ],
+      "knn_n_train": 93133,
+      "hd_dict_size": 83532,
+      "n_barrios_escasos": 13
+    },
+    "dim_reduction_version": "v1-placeholder",
+    "hotdeck": {
+      "key": "description_normalizada",
+      "normalizacion": "lower + sin_acentos + sin_puntuacion + colapsar_espacios + min_20_chars",
+      "agg": "median",
+      "fuente": "train completo (venta + USD)"
+    },
+    "target_encoding_barrio": "DESACTIVADO (leakage E2-v2/v3)",
+    "modelo": {
+      "tipo": "RandomForestRegressor",
+      "n_estimators": 500,
+      "max_depth": "50",
+      "random_state": 42,
+      "split": "train_test_split(test_size=0.2, random_state=42)"
+    },
+    "validacion_primaria": "KFold(5) x 3 seeds"
+  },
+  "data": {
+    "train_post_filtro": [
+      123102,
+      18
+    ],
+    "outliers_if_eliminados": 760,
+    "train_post_outliers": [
+      122342,
+      41
+    ],
+    "hotdeck_overrides": 1058,
+    "hotdeck_coverage_pct": 7.85,
+    "test_predicciones": 13471,
+    "hotdeck_overrides_aplicados": 1058
+  },
+  "metricas": {
+    "rmse_train": 41586.04617881394,
+    "rmse_holdout": 116114.84040650706,
+    "n_features": 27,
+    "features": [
+      "lat",
+      "lon",
+      "n_dormitorios",
+      "n_banos",
+      "m2",
+      "f_balcon",
+      "f_garage",
+      "f_cochera",
+      "f_pileta",
+      "f_parrilla",
+      "f_aire_acondicionado",
+      "f_calefaccion",
+      "f_gas_natural",
+      "f_internet",
+      "f_seguridad",
+      "f_alarma",
+      "f_gimnasio",
+      "f_jardin",
+      "f_cuarto_de_servicio",
+      "f_cocina_equipada",
+      "f_bodega",
+      "rooms",
+      "len_descripcion",
+      "n_features",
+      "m2_was_na",
+      "barrio_id",
+      "property_type_id"
+    ],
+    "rmse_cv5_folds": [
+      113051.91868707316,
+      112943.13818891617,
+      114243.63043698597,
+      110727.08353795996,
+      110437.96655689926,
+      111272.07054278944,
+      115974.93483452145,
+      114624.98141537426,
+      114096.28476286014,
+      108439.6131339046,
+      111405.90535819772,
+      114147.03387481127,
+      110004.17362033634,
+      114080.867828466,
+      109055.11004029012
+    ],
+    "rmse_cv5_mean": 112300.31418795907,
+    "rmse_cv5_std": 2190.5410210346618,
+    "rmse_holdout_temporal": 110491.77307756098,
+    "pred_p05": 76000.0,
+    "pred_mediana": 162000.0,
+    "pred_p95": 577000.0
+  },
+  "kaggle": {
+    "rmse": 91594.919,
+    "submitted_at": null,
+    "leaderboard_position": null,
+    "recorded_at": "2026-05-01T11:46:15"
+  },
+  "output": {
+    "csv": "entregas/entrega_3/solucion-entrega3-v4.csv",
+    "csv_md5": "89e0908388e6f5c502aca00ab0f8987d",
+    "json": "entregas/entrega_3/solucion-entrega3-v4.json",
+    "kaggle_submit_message": "entrega_3/v4: Barrio cleanup: cascade HotDeck(desc) -> KNN(lat/lon k=5) -> desconocido; barrios escasos<=10 -> barrio_raro"
+  }
+}

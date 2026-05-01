@@ -37,6 +37,7 @@ venv/
 .vscode/
 .idea/
 .cursor/
+# Claude Code — settings locales (no commitear; el archivo queda en tu máquina)
 .claude/settings.local.json
 *.swp
 .DS_Store

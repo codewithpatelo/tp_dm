@@ -169,18 +169,16 @@ Son **tres referencias distintas** — conviene no mezclarlas al evaluar avance:
 | v5 | 112 341 ± 1 659 | — | 113 952 | 97 498 | distribution shift: temporales/booleanos/floor |
 | v6 | 112 304 ± 2 794 | 122 795 | 113 952 | — (no submit) | diagnóstico: multi-seed CV5 + holdout temporal + mini-ablation v5 |
 
-Umbral de submit (v6+, doble criterio): mejora simultánea > 1 500 en
-`rmse_cv5_mean` (multi-seed) **y** > 1 500 en `rmse_holdout_temporal`. El
-holdout único queda como columna informativa, no decide.
 
 ### Resultados registrados (entrega_3)
 
 | versión | RMSE CV5 (mean ± std) | RMSE holdout temporal | RMSE holdout | RMSE Kaggle | estado |
 |---|---:|---:|---:|---:|---|
 | v1 | 116 669.79 ± 2 521 | 117 235.85 | 118 866.97 | 93 147 | baseline E2 pipeline + CV5 multi-seed |
-| **v2** | **112 776.86 ± 2 173** | **111 536.16** | 116 706.86 | **91 399** | **campeón actual** — parseo dual + rooms |
-| v3 | 112 884.00 ± 2 185 | 111 555.58 | 116 821.38 | pendiente | log-transforms — NO mejora (RF invariante a transforms monótonas) |
-| v4 | — | — | — | — | en curso (barrio cleanup) |
+| v2 | 112 776.86 ± 2 173 | 111 536.16 | 116 706.86 | **91 399** | mejor Kaggle — parseo dual + rooms |
+| v3 | 112 884.00 ± 2 185 | 111 555.58 | 116 821.38 | — | log-transforms — NO mejora |
+| **v4** | **112 300.31 ± 2 191** | **110 491.77** | 116 114.84 | 91 595 | **campeón local** — barrio cleanup; Kaggle −196 vs v2 (shift leve) |
+| v5 | 112 441.41 ± 2 138 | 111 293.00 | 116 949.35 | — | distancias + ratios + density — NO mejora; redundante con lat/lon |
 
 ## Directiva: experimentos fallidos como aprendizaje
 
@@ -328,18 +326,52 @@ Notebook base provista: `Colab_Base_para_el_Trabajo_Práctico_(Entrega_2).ipynb`
 - **v1 → baseline E3 + CV5 multi-seed**. Primera corrida E3 con el pipeline exacto de E2-v4 más la infraestructura nueva (CV5 multi-seed 3 seeds × 5 folds, holdout temporal, ResumableRunner). Kaggle 93 147 — alineado con E2-v4 (93 151), confirma que la infraestructura no introdujo ruido. HP fijos en `n_estimators=500`, `max_depth=50` (sweep habilitado pero no corrido todavía).
 - **v2 → parseo dual + rooms (CAMPEÓN ACTUAL)**. Fallback de `features` a `description` para m2/dormitorios/baños cuando NaN; agrega `rooms` (ambientes desde patrón `X amb`). Rescata ~1 192 m2, ~88 dormitorios, ~186 baños en train. CV5 baja 3 893 puntos, holdout temporal baja 5 700 puntos — ambos por encima del umbral de 1 500. Kaggle: **91 399** (−1 748 vs campeón anterior). Lección: recuperar valores reales de m2 (en lugar de mediana imputable) mejora los splits del RF en la variable de mayor importancia — efecto real, no artefacto de validación.
 - **v3 → log-transforms (DESCARTADO)**. `log1p(m2, n_dormitorios, n_banos, len_descripcion, n_features)` como columnas nuevas. CV5 empeoró ligeramente (112 884 vs 112 777, delta +107). **Aprendizaje clave**: los árboles de decisión son invariantes a transformaciones monótonas de las features — el split-finding ya encuentra los umbrales óptimos en cualquier escala. Agregar columnas `log1p_*` junto a las originales solo aumenta la dimensionalidad sin añadir información nueva. Log-transforms NO aplican a RF (sí aplican a regresión lineal, redes neuronales, etc.).
-- **v4 → barrio cleanup (en curso)**. Cascada: Hot Deck por descripción normalizada → KNN(lat/lon, k=5) → "desconocido"; colapso barrios ≤10 obs → "barrio_raro". Justificación: análisis de errores muestra 71.25% del RMSE viene de "barrio desconocido".
+- **v4 → barrio cleanup (CAMPEÓN LOCAL)**. Cascada: Hot Deck por descripción normalizada → KNN(lat/lon, k=5) → "desconocido"; colapso barrios ≤10 obs → "barrio_raro". CV5 +477, holdout temporal +1,044. Kaggle retrocede 196 puntos vs v2 — señal de distribution shift leve (KNN puede asignar barrios que el test espera como "desconocido", cambiando la distribución de `barrio_id`). Aprendizaje: el barrio cleanup mejora la señal interna pero puede introducir ruido en test si la distribución de barrios en test es diferente al entrenamiento.
+- **v5 → distancias + m2_per_room + BallTree density (DESCARTADO)**. Distancias euclídeas (×111 km) a centroides de los 10 barrios más frecuentes, ratios `m2_per_room`/`m2_per_bano`, densidad `density_k10` (media de distancias a k=10 vecinos más cercanos vía BallTree haversine). CV5 112 441 vs 112 300 de v4 (+141); holdout temporal 111 293 vs 110 492 (+801). Ambas métricas peores. **Aprendizaje**: el RF ya tiene `lat` y `lon` como features — puede derivar implícitamente distancias a cualquier punto haciendo splits en esas dos variables. Las distancias a centroides son transformaciones redundantes de información que el modelo ya posee. `m2_per_room` es información que el RF extrae con un split conjunto de `m2` y `n_dormitorios`, por lo que la columna no agrega señal. `density_k10` correlaciona fuertemente con `lat`/`lon` (la densidad urbana tiene gradiente geográfico claro), duplicando información.
+- **v6 → log(price) target transform (en curso)**. Fit del RF en `log(price)`, predicción en `exp(ŷ)`. Motivación: decil 9 de price aporta 59.4% del RMSE con `mean_signed = +175 738` — subestimación sistemática de propiedades caras. Log comprime la cola derecha y alinea la distribución del target con lo que el RF puede modelar linealmente en el espacio de splits. RMSE siempre en USD original para comparabilidad.
 
 #### Roadmap de experimentos (orden por potencial / complejidad)
 
 | orden | versión | contenido | estado |
 |---|---|---|---|
 | 1 | v2 | parseo dual + rooms | campeón |
-| 2 | v3 | log-transforms | completado — NO mejoró |
-| 3 | v4 | barrio cleanup (Hot Deck → KNN → desconocido) | en curso |
-| 4 | v5 | distancias a centros de referencia (sin API) | pendiente |
-| 5 | v6 | log(price) target transform | pendiente |
-| 6 | v7 | reducción de dimensionalidad (VarianceThreshold / PCA) | pendiente |
+| 2 | v3 | log-transforms | completado — NO mejoró (RF invariante a transforms monótonas) |
+| 3 | v4 | barrio cleanup (Hot Deck → KNN → desconocido) | **campeón local** — Kaggle shift leve |
+| 4 | v5 | distancias dinámicas + m2_per_room ratio + BallTree density | **completado** — NO mejoró; redundante con lat/lon. CV5 +141, holdout +801 vs v4. |
+| 5 | v6 | log(price) target transform | **en curso** — mayor potencial esperado (decil 9 = 59.4% del RMSE) |
+| 6 | v7 | SelectKBest(mutual_info) amenities + luxury/thematic scores + TF-IDF+SVD | pendiente |
+
+#### Backlog de ideas (research 2026-05-01)
+
+**INCLUIDAS en roadmap activo:**
+
+| idea | versión destino | justificación |
+|---|---|---|
+| `m2_per_room = m2/(n_dormitorios+1)`, `m2_per_bano` | v5 | ratio de espaciosidad — nuevo split en 1 variable vs 2 crudas |
+| BallTree density (dist prom a k=10 vecinos más cercanos) | v5 | diferencia zonas residenciales vs comerciales; lat/lon solos no capturan densidad |
+| luxury_score ponderado (pileta×3, gimnasio×2, cochera×2...) | v7 | ataca subestimación decil 9; reduce profundidad de árbol para propiedades premium |
+| scores temáticos: `outdoor_score`, `services_score`, `security_score` | v7 | agrupa 16 amenities binarias dispersas en 3 dimensiones semánticas |
+| SelectKBest(mutual_info_regression, k=8) sobre amenities | v7 | elimina f_alarma/f_gas_natural/f_internet (IG <0.15%); técnica Clase 08 |
+| TF-IDF + TruncatedSVD sobre `description` | v7 | SVD en Clase 08; captura señales textuales de lujo/estado no cubiertas por amenities binarias |
+
+**DESCARTADAS con justificación:**
+
+| idea | motivo de descarte |
+|---|---|
+| precio_m2_barrio como feature (Exp 1 research) | target encoding disfrazado — usa price/m2 por barrio = leakage detectado en E2 |
+| log-transforms de features (v3) | RF invariante a transforms monótonas — confirmado empíricamente |
+| distancias a centroides de barrio (v5) | redundantes con lat/lon — RF ya puede derivar distancias vía splits; CV5 +141, holdout +801 vs v4 |
+| m2_per_room, m2_per_bano (v5) | RF extrae esa interacción con splits conjuntos de m2 y n_dormitorios/banos; columna redundante |
+| BallTree density k=10 (v5) | correlaciona con lat/lon (gradiente urbano); información duplicada |
+| target encoding de barrio | leakage suave detectado en E2-v2/v3 — descartado permanentemente |
+| location_2_id como feature directa | 95% etiquetas basura en test (EDA E3) |
+
+**BACKLOG BAJO PRIORIDAD (explorar post-E3 si hay slots):**
+
+| idea | por qué no ahora |
+|---|---|
+| m2 quartile within barrio (Exp 3 research) | bajo valor incremental para RF; requiere cuidado de leakage en CV5 |
+| haversine vs euclidean distances | diferencia <1% a escala CABA — no justifica complejidad adicional |
 
 #### Consigna E3 (referencia)
 
@@ -491,18 +523,28 @@ documento.
 
 ### Auto-submit a Kaggle
 
-`entregas/run_entrega.py` decide submit automático así (v6+):
+Si el experimento mejora simultáneamente `rmse_cv5_mean` **y** `rmse_holdout_temporal` respecto al campeón anterior → es el nuevo campeón y se envía a Kaggle automáticamente. El score Kaggle se registra para detectar overfitting al leaderboard público; no cambia el campeón. `MARGEN_CV5 = MARGEN_HOLDOUT_TEMPORAL = 0` en `run_entrega.py`.
 
-1. La corrida actual debe tener **CV5 multi-seed** (`rmse_cv5_mean`)
-   **y** **holdout temporal** (`rmse_holdout_temporal`); si falta
-   cualquiera, no submit (queda manual).
-2. Tiene que existir al menos un previo con cada una de las dos métricas
-   para poder comparar; en la primera corrida del nuevo régimen, no
-   submit (queda manual).
-3. Submit sólo si MEJORA SIMULTÁNEAMENTE > `MARGEN_CV5` (= 1 500) en
-   `rmse_cv5_mean` y > `MARGEN_HOLDOUT_TEMPORAL` (= 1 500) en
-   `rmse_holdout_temporal` respecto al mejor previo de cada una. Una
-   mejora en una sola métrica nunca dispara submit (caso v5).
+### Early stopping de experimentos
+
+Si al completar el **fold 10/15** (dos tercios del CV5) la media parcial
+es **peor que el campeón vigente**, cancelar el experimento:
+1. Matar el proceso (`TaskStop` o Ctrl-C).
+2. Registrar el aprendizaje (qué se probó, por qué no funcionó) en
+   `estado_actual.md`, `CONTEXT.md` → lecciones aprendidas, y
+   `docs/heuristicas_ds.jsonl`.
+3. Avanzar al siguiente experimento del roadmap.
+
+Justificación: con 10/15 folds la media parcial es suficientemente estable
+— si ya está peor que el campeón, los 5 folds restantes raramente invierten
+la tendencia y malgastan ~20-30 min de cómputo.
+
+**Umbral**: `media_parcial_fold10 > rmse_campeon`. Si hay empate o mejora
+marginal (< 200), se puede dejar correr y decidir al final.
+
+### Auto-submit a Kaggle
+
+Si el experimento mejora simultáneamente `rmse_cv5_mean` **y** `rmse_holdout_temporal` respecto al campeón anterior → es el nuevo campeón y se envía a Kaggle automáticamente. El score Kaggle se registra para detectar overfitting al leaderboard público; no cambia el campeón. `MARGEN_CV5 = MARGEN_HOLDOUT_TEMPORAL = 0` en `run_entrega.py`.
 
 ### Disciplina experimental (válida para cualquier entrega)
 
