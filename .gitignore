@@ -37,6 +37,7 @@ venv/
 .vscode/
 .idea/
 .cursor/
+.claude/settings.local.json
 *.swp
 .DS_Store
 Thumbs.db
