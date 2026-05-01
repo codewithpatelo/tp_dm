@@ -10,7 +10,10 @@
       "Bash(python -c \"import json; m=json.load\\(open\\('c:/Users/PatricioGerpe/tp_dm/entregas/entrega_3/solucion-entrega3-v1.json',encoding='utf-8'\\)\\); import pprint; pprint.pprint\\(m['metricas']\\)\")",
       "Bash(python entregas/run_entrega.py --record-kaggle --entrega entrega_3 --nombre v1 --kaggle-rmse 93146.749)",
       "Bash(python entregas/run_entrega.py --entrega entrega_3 --nombre v2 --desc \"Parseo dual \\(features+description fallback\\): rescata m2/dormitorios/banos + nueva feature rooms\")",
-      "Bash(python -c \"import sys; [print\\(l.encode\\('ascii','replace'\\).decode\\(\\)\\) for l in sys.stdin]\")"
+      "Bash(python -c \"import sys; [print\\(l.encode\\('ascii','replace'\\).decode\\(\\)\\) for l in sys.stdin]\")",
+      "Bash(python entregas/run_entrega.py --entrega entrega_3 --nombre v3 --desc \"Log-transforms de variables sesgadas: log1p\\(m2/dormitorios/banos/len_desc/n_features\\)\")",
+      "Bash(echo \"PID: $!\")",
+      "Bash(python -)"
     ]
   }
 }

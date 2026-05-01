@@ -1,32 +1,29 @@
 # Entrega Parcial 3 - Patricio Gerpe
 
-Partí exactamente del campeón de la Entrega 2 y, como todavía no encontré una ingeniería de atributos ni una reducción de dimensionalidad que mejoren a la vez validación local y Kaggle, mantuve sin cambios filtros, outliers, imputación y Hot Deck. En números, seguí con 123 102 filas post-filtro, eliminé 719 outliers multivariados y terminé con 122 383 filas; además, el Hot Deck por `description` siguió cubriendo 1 058 casos del test (7.85 %).
+Partí del campeón de la Entrega 2 y mantuve filtros, outliers, imputación y Hot Deck porque no tenía evidencia de que tocar esa base mejorara fuera de muestra. Eso dejó 123 102 filas post-filtro, eliminó 760 outliers multivariados y terminó en 122 342 filas; además, el Hot Deck por `description` siguió resolviendo 1 058 casos del test, el 7.85 %.
 
 ## A. Ingeniería de atributos
 
 ### A.1
-Al cerrar la Entrega 2 me quedó una tensión clara: v5 había mejorado en validación aleatoria pero empeorado en Kaggle, así que antes de sumar atributos nuevos necesité separar señal genuina de sobreajuste temporal. Esa lección me hizo conservar sólo los derivados que ya habían mostrado estabilidad fuera de muestra: `m2`, `n_dormitorios`, `n_banos`, 17 flags de amenities, `len_descripcion`, `n_features` y `m2_was_na`, para 26 features. Mi hipótesis fue que, sin una validación temporal confiable, agregar variables “atractivas” podía repetir el error de v5. El resultado sostuvo esa cautela: con este set obtuve 116 670 de CV5 y 117 236 en holdout temporal, muy cerca entre sí, en lugar de la brecha de más de 10 000 puntos que había aparecido en E2.
+Al cerrar la Entrega 2 me había quedado una contradicción: v5 mejoraba en validación aleatoria pero empeoraba en Kaggle, así que antes de sumar atributos nuevos necesité separar señal genuina de atajos espurios. Mi hipótesis fue que faltaba información estructural en filas donde `features` venía incompleta, pero que esa señal seguía escrita en `description`. Por eso probé en v2 un parseo dual: extraer `m2`, `n_dormitorios` y `n_banos` desde `features` y, sólo si faltaban, recuperarlos desde la descripción; además sumé `rooms`. Esa decisión rescató en train 10 844 valores de `m2`, 3 168 de dormitorios y 2 293 de baños, y en test otros 29, 80 y 55. El resultado fue claro: pasé de 116 670 a 112 777 en CV5, de 117 236 a 111 536 en holdout temporal y de 93 146.749 a 91 399.286 en Kaggle.
 
 ### A.2
-Con esa base estabilizada, el problema dejó de ser “agregar más” y pasó a ser qué atributos convenía no tocar. El fracaso previo de las variables temporales me enseñó que `pub_year` y `pub_month` capturaban drift macroeconómico más que valor del inmueble; por eso no las reincorporé, aunque en KFold parecían útiles. También descarté volver a estadísticas de precio por barrio: en E2, v2 empeoró Kaggle de 93 167 a 96 891 y v3 a 97 423 porque esa familia de variables filtraba información del target. Aprendí entonces que, en esta entrega, una buena ingeniería de atributos no era la más ambiciosa sino la que preservaba señal estructural sin reabrir leakage ni shift.
+Esa mejora me obligó a preguntarme qué atributos convenía seguir dejando afuera. El fracaso de v2 y v3 de la entrega anterior ya me había enseñado que las estadísticas de precio por barrio no agregaban contexto sino leakage: Kaggle había empeorado de 93 167 a 96 891 y 97 423. A la vez, v5 mostró que `pub_year` y `pub_month` parecían útiles en KFold pero capturaban drift temporal. Por eso la corrida campeona no buscó la ingeniería más ambiciosa, sino la más defendible: 27 variables, casi todas interpretables, donde la novedad real fue rescatar información faltante del mismo aviso en lugar de inyectar target o tiempo.
 
 ## B. Reducción de dimensionalidad
 
 ### B.1
-Esa prudencia me llevó a una decisión menos vistosa pero más sólida: no apliqué reducción de dimensionalidad en la corrida campeona. Con sólo 26 variables, la mayoría interpretables y varias binarias, no tenía evidencia de maldición de dimensionalidad ni de ruido por alta correlación que justificara comprimir el espacio. Mi hipótesis fue que reducir dimensiones acá podía mezclar superficie, ubicación y amenities, y quitarle capacidad de partición al Random Forest.
-
-### B.2
-Con esa pregunta resuelta, preferí usar la entrega para fijar una línea de base robusta antes de probar PCA u otras variantes. El aprendizaje fue concreto: en E3 la principal mejora no vino de transformar el espacio de atributos, sino de endurecer el criterio de validación que decide qué merece llegar a Kaggle.
+Con ese rescate resuelto, el siguiente problema era si convenía comprimir el espacio. Decidí no aplicar reducción de dimensionalidad en la versión campeona porque no vi el patrón que la justificara: trabajé con 27 features, muchas binarias y semánticamente distintas, y el Random Forest tolera bien esa escala. Mi hipótesis fue que una compresión prematura podía mezclar superficie, ubicación y amenities, justo cuando la mejora de v2 vino de volver más explícitas esas señales, no de fusionarlas. El aprendizaje fue que, antes de reducir dimensiones, primero tengo que agotar atributos nuevos con significado claro.
 
 ## C. Modelo (Predicción)
 
 | Entrega | Kaggle RMSE |
 |---|---:|
 | Entrega 2 | 93 151 |
-| Entrega 3 | **93 146.749** |
+| Entrega 3 | **91 399.286** |
 
-Esa comparación muestra una mejora marginal de 4.251 puntos. No la atribuyo a una feature nueva, sino a haber consolidado como campeón el pipeline de E2 bajo un esquema de validación más exigente: CV5 multi-seed de 116 670 ± 2 521 y holdout temporal de 117 236. Mi conclusión es que E3, por ahora, aportó más en control experimental que en ganancia de score.
+Esa comparación muestra una mejora de 1 751.714 puntos. No la explico por cambiar el modelo, porque seguí con `RandomForestRegressor` de 500 árboles y profundidad 50, sino por haber recuperado variables básicas que faltaban en parte del dataset. La consistencia entre CV5 y holdout temporal también mejoró: la brecha quedó en 1 241 puntos, muy lejos del desalineamiento que había delatado el shift en E2.
 
 ## D. Entrega
 
-El principal resultado de esta entrega fue metodológico: convertí en campeón una versión que casi replica E2 pero ya está evaluada con un criterio compatible con el shift temporal del test público. Eso me deja una base más confiable para la Entrega 4, donde espero sumar señal nueva desde texto, geografía y datos externos, en lugar de seguir forzando atributos estructurados con rendimiento decreciente.
+El resultado principal de esta entrega fue confirmar que la mejor ingeniería de atributos no era sumar variables vistosas, sino rescatar señal perdida dentro del propio aviso. Eso me deja una base más fuerte para la Entrega 4: si quiero volver a mejorar, ya no alcanza con exprimir columnas estructuradas; necesito incorporar información nueva desde texto libre y geografía.

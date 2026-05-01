@@ -18,68 +18,62 @@ libertad en E4 y en la final.
 | Referencia | Valor | Notas |
 |---|---:|---|
 | Mejor público leaderboard | **62 821.209** | Snapshot 2026-04-20; aspiracional, no es consigna. |
-| Campeón propio (v4) | **93 151** | Baseline actual de trabajo. |
-| Robot E3 | *pendiente* | Aún no publicado; sin RMSE de referencia hasta entonces. Detalle en `CONTEXT.md`. |
+| **Campeón propio (v2, E3)** | **91 399** | Baseline actual de trabajo. |
+| Robot E3 | *pendiente* | Aún no publicado; sin RMSE de referencia hasta entonces. |
 
 ## Entregas (tabla de estado)
 
 | Entrega | Foco | Estado |
 |--------|------|--------|
-| **E1** | Filtros | Aprobada (mejor Kaggle entorno **166 979**) |
-| **E2** | Outliers + faltantes | Aprobada (mejor Kaggle **93 151**) |
-| **E3** | Ingeniería de atributos + reducción de dimensionalidad | **En curso** |
+| **E1** | Filtros | Aprobada (mejor Kaggle **166 979**) |
+| **E2** | Outliers + faltantes | Aprobada (mejor Kaggle **93 151**, v4) |
+| **E3** | Ingeniería de atributos + reducción de dimensionalidad | **En curso** — campeón parcial v2 (Kaggle **91 399**) |
 | **E4** | Datos no estructurados + APIs + datos geográficos | Pendiente |
 | **Final** | Integración completa | Pendiente |
 
-**Nota:** En `CONTEXT.md` la sección *"Estado de las entregas → Entrega 2"*
-puede seguir con detalle histórico y lecciones. El **campeón de Kaggle
-registrado** sigue siendo **v4** (RMSE **93 151**). El foco operativo declaro
-en el repo es **E3**.
-
-## Campeón actual (baseline de trabajo): v4 (E2)
+## Campeón actual: E3-v2
 
 Pipeline en síntesis:
 
 1. Filtros E1 + ampliaciones CABA / `ph` / `cochera`.
-2. Parseo de **`features`** (m², dormitorios, baños, amenities).
+2. Parseo de **`features`** con fallback a **`description`** para m2/dormitorios/baños cuando NaN (**parseo dual**); nueva feature `rooms` (ambientes).
 3. Outliers univariados (winsorizar a NaN) + **`IsolationForest`** multivariado solo en train.
-4. Imputación (`SimpleImputer`); **`m2_was_na`**.
+4. Imputación (`SimpleImputer` mediana); **`m2_was_na`**.
 5. **Hot Deck** por descripción normalizada.
 6. **`factorize`** barrio / tipo.
 7. **RF** `n_estimators=500`, `max_depth=50`; predicción + override Hot Deck.
 
-**Métricas de referencia (tabla “Resultados registrados” en CONTEXT):**
+**Métricas:**
 
 | versión | RMSE CV5 (mean ± std) | RMSE holdout temporal | RMSE Kaggle |
 |---|---:|---:|---:|
-| **v4 (campeón)** | **117 219 ± 2 392** | — | **93 151** |
+| v1 (baseline) | 116 670 ± 2 521 | 117 236 | 93 147 |
+| **v2 (campeón)** | **112 777 ± 2 173** | **111 536** | **91 399** |
 
-## Experimentos que marcaron el rumbo
+## E3 — experimentos en curso / pendientes
 
-- **v2 / v3:** mejoras locales con **leakage** (encoding / imputación que arrastran señal del precio) → Kaggle peor.
-- **v5:** mejora fuerte en CV5 pero **peor en Kaggle** → **distribution shift**; features temporales y booleanos de texto engañosos con KFold aleatorio.
-- **v6:** corrida de **diagnóstico** (no submit): holdout temporal + mini-ablaciones; confirma que **`pub_year` / `pub_month`** son el principal problema de v5. Regla: **nuevo FE se valida con vista temporal**, no solo CV aleatorio.
+| orden | versión | contenido | estado |
+|---|---|---|---|
+| — | v2 | parseo dual + rooms | **campeón** |
+| 1 | v3 | log-transforms (log1p m2/dormitorios/baños/len_desc/n_features) | **completado** — NO mejoró (CV5 112 884 vs 112 777; RF invariante a transforms monótonas) |
+| 2 | v4 | barrio cleanup (Hot Deck → KNN → desconocido) | **corriendo ahora** |
+| 3 | v5 | distancias a centros de referencia (sin API) | pendiente |
+| 4 | v6 | log(price) target transform | pendiente |
+| 5 | v7 | reducción de dimensionalidad (VarianceThreshold / PCA) | pendiente |
 
-**Política de submit (v6+):** mejora simultánea > **1 500** en `rmse_cv5_mean` (multi-seed) **y** > **1 500** en `rmse_holdout_temporal` respecto al mejor previo de cada una; registrar Kaggle cuando corresponda.
+**Política de submit:** mejora simultánea > 1 500 en CV5 multi-seed **y** > 1 500 en holdout temporal vs el mejor previo de cada métrica.
 
-## E3 — foco actual
+## Clases disponibles (E3)
 
-- Puede ajustarse **`n_estimators`** y **`max_depth`** del RF (el resto según consigna del curso).
-- Robot E3: notebook **pendiente**; **RMSE Kaggle del robot** aún **desconocido**
-  (tabla y párrafo en `CONTEXT.md` → *Robots de la cátedra*).
-- Notebook / artefactos: `entregas/entrega_3/`, `leaderboard.md` local.
-
-## Repositorio más allá del notebook Kaggle
-
-Carpeta **`gui/`** (Streamlit, agente code-first, sandbox): herramienta de exploración; no sustituye por sí sola la entrega en formato notebook/consigna.
+- Clase 07 — Ingeniería de atributos (`diapos_clase/FCEN MD Clase 07...pdf`, `colabs_clase/Clase_07_...ipynb`)
+- Clase 08 — Reducción de dimensionalidad (`diapos_clase/FCEN MD Clase 08...pdf`, `colabs_clase/Clase_08_...ipynb`)
 
 ## Historial de actualizaciones
 
 | Fecha | Cambio |
 |------|--------|
 | 2026-04-30 | Creación del archivo; contenido alineado al resumen ejecutivo del repositorio. |
-| 2026-04-30 | Benchmarks: leaderboard público **62 821.209**, campeón v4 **93 151**, robot E3 sin RMSE hasta publicación (`CONTEXT.md` + esta tabla). |
-
-Al avanzar el TP: actualizar la tabla de entregas, el campeón, métricas y esta
-línea de historial; reflejar lo mismo en las tablas detalladas de `CONTEXT.md`
-cuando corresponda.
+| 2026-04-30 | Benchmarks: leaderboard público **62 821.209**, campeón v4 E2 **93 151**, robot E3 sin RMSE hasta publicación. |
+| 2026-04-30 | E3-v1 completado (Kaggle 93 147); E3-v2 completo (Kaggle **91 399**, nuevo campeón). Clases 07 y 08 disponibles. |
+| 2026-05-01 | E3-v3 completado (CV5 112 884 ± 2 185, holdout 111 556) — log-transforms NO mejoran al RF (invariante a transforms monótonas). Aprendizaje: no agregar columnas redundantes en escala log. |
+| 2026-05-01 | Timeout nbclient (3600s) en primera corrida de v3; fix: timeout=7200s en run_entrega.py. V4 (barrio cleanup) iniciada. |

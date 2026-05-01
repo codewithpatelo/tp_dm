@@ -152,7 +152,7 @@ Son **tres referencias distintas** — conviene no mezclarlas al evaluar avance:
 | Rol | Valor (referencia) | Uso |
 |---|---|---|
 | **Benchmark público (leaderboard)** | **62 821.209** | Mejor RMSE **público** en la competencia a **2026-04-20**. Techo orientativo del *dataset* y del estado del arte visible en Kaggle; **no** es consigna de la cátedra ni criterio de aprobación. Actualizar el número si el tope del leaderboard cambia. |
-| **Campeón propio** | **93 151** (v4, Entrega 2) | Baseline de trabajo e informe; ver tabla *Resultados registrados* abajo. |
+| **Campeón propio** | **91 399** (v2, Entrega 3) | Baseline de trabajo e informe; ver tabla *Resultados registrados* abajo. |
 | **Umbral de aprobación por entrega** | Robot de la entrega | Hay que **ganarle al robot** en Kaggle; el RMSE exacto del robot **E3** está **pendiente** hasta publicación (ver *Robots de la cátedra*). |
 
 - No es obligatorio alcanzar el benchmark público; no forzar decisiones
@@ -165,13 +165,22 @@ Son **tres referencias distintas** — conviene no mezclarlas al evaluar avance:
 | v1 | — | — | 118 867 | 93 167 | |
 | v2 | — | — | 116 923 | 96 891 | leakage: barrio price stats |
 | v3 | — | — | 117 080 | 97 423 | leakage: lat/lon centroide barrio |
-| **v4** | **117 219 ± 2 392** | — | 118 867 | **93 151** | **campeón actual** |
+| **v4** | **117 219 ± 2 392** | — | 118 867 | **93 151** | campeón E2 (entregado) |
 | v5 | 112 341 ± 1 659 | — | 113 952 | 97 498 | distribution shift: temporales/booleanos/floor |
 | v6 | 112 304 ± 2 794 | 122 795 | 113 952 | — (no submit) | diagnóstico: multi-seed CV5 + holdout temporal + mini-ablation v5 |
 
 Umbral de submit (v6+, doble criterio): mejora simultánea > 1 500 en
 `rmse_cv5_mean` (multi-seed) **y** > 1 500 en `rmse_holdout_temporal`. El
 holdout único queda como columna informativa, no decide.
+
+### Resultados registrados (entrega_3)
+
+| versión | RMSE CV5 (mean ± std) | RMSE holdout temporal | RMSE holdout | RMSE Kaggle | estado |
+|---|---:|---:|---:|---:|---|
+| v1 | 116 669.79 ± 2 521 | 117 235.85 | 118 866.97 | 93 147 | baseline E2 pipeline + CV5 multi-seed |
+| **v2** | **112 776.86 ± 2 173** | **111 536.16** | 116 706.86 | **91 399** | **campeón actual** — parseo dual + rooms |
+| v3 | 112 884.00 ± 2 185 | 111 555.58 | 116 821.38 | pendiente | log-transforms — NO mejora (RF invariante a transforms monótonas) |
+| v4 | — | — | — | — | en curso (barrio cleanup) |
 
 ## Directiva: experimentos fallidos como aprendizaje
 
@@ -217,7 +226,7 @@ La que corresponde al informe entregado de Entrega 1 es **`solucion (12).csv` = 
 Este es el **número de referencia** para la comparación del punto **C. Modelo (Predicción)**
 de la Entrega 2 (evaluar evolución del modelo al aplicar las técnicas nuevas).
 
-### Entrega 2 — EN CURSO
+### Entrega 2 — ENTREGADA
 
 #### Lecciones aprendidas
 
@@ -312,6 +321,30 @@ Restricción explícita:
 
 Notebook base provista: `Colab_Base_para_el_Trabajo_Práctico_(Entrega_2).ipynb`. Tiene una sección de modelo marcada **⛔ NO TOCAR ⛔** (RandomForestRegressor con `n_estimators=500`, `max_depth=50`).
 
+### Entrega 3 — EN CURSO
+
+#### Lecciones aprendidas
+
+- **v1 → baseline E3 + CV5 multi-seed**. Primera corrida E3 con el pipeline exacto de E2-v4 más la infraestructura nueva (CV5 multi-seed 3 seeds × 5 folds, holdout temporal, ResumableRunner). Kaggle 93 147 — alineado con E2-v4 (93 151), confirma que la infraestructura no introdujo ruido. HP fijos en `n_estimators=500`, `max_depth=50` (sweep habilitado pero no corrido todavía).
+- **v2 → parseo dual + rooms (CAMPEÓN ACTUAL)**. Fallback de `features` a `description` para m2/dormitorios/baños cuando NaN; agrega `rooms` (ambientes desde patrón `X amb`). Rescata ~1 192 m2, ~88 dormitorios, ~186 baños en train. CV5 baja 3 893 puntos, holdout temporal baja 5 700 puntos — ambos por encima del umbral de 1 500. Kaggle: **91 399** (−1 748 vs campeón anterior). Lección: recuperar valores reales de m2 (en lugar de mediana imputable) mejora los splits del RF en la variable de mayor importancia — efecto real, no artefacto de validación.
+- **v3 → log-transforms (DESCARTADO)**. `log1p(m2, n_dormitorios, n_banos, len_descripcion, n_features)` como columnas nuevas. CV5 empeoró ligeramente (112 884 vs 112 777, delta +107). **Aprendizaje clave**: los árboles de decisión son invariantes a transformaciones monótonas de las features — el split-finding ya encuentra los umbrales óptimos en cualquier escala. Agregar columnas `log1p_*` junto a las originales solo aumenta la dimensionalidad sin añadir información nueva. Log-transforms NO aplican a RF (sí aplican a regresión lineal, redes neuronales, etc.).
+- **v4 → barrio cleanup (en curso)**. Cascada: Hot Deck por descripción normalizada → KNN(lat/lon, k=5) → "desconocido"; colapso barrios ≤10 obs → "barrio_raro". Justificación: análisis de errores muestra 71.25% del RMSE viene de "barrio desconocido".
+
+#### Roadmap de experimentos (orden por potencial / complejidad)
+
+| orden | versión | contenido | estado |
+|---|---|---|---|
+| 1 | v2 | parseo dual + rooms | campeón |
+| 2 | v3 | log-transforms | completado — NO mejoró |
+| 3 | v4 | barrio cleanup (Hot Deck → KNN → desconocido) | en curso |
+| 4 | v5 | distancias a centros de referencia (sin API) | pendiente |
+| 5 | v6 | log(price) target transform | pendiente |
+| 6 | v7 | reducción de dimensionalidad (VarianceThreshold / PCA) | pendiente |
+
+#### Consigna E3 (referencia)
+
+Foco: **ingeniería de atributos** (Clase 7) + **reducción de dimensionalidad** (Clase 8). HP `n_estimators` y `max_depth` del RF son modificables. Consigna completa en `Consigna Entrega Parcial 3.pdf` (pendiente de lectura detallada de sub-ítems).
+
 ## Material de clase disponible
 
 ### Slides (`diapos_clase/`)
@@ -320,6 +353,8 @@ Notebook base provista: `Colab_Base_para_el_Trabajo_Práctico_(Entrega_2).ipynb`
 - Clase 02 — Preprocesamiento (tipos de atributos, limpieza, discretización, numerización).
 - Clase 04 — Análisis de valores atípicos (IQR, Z-score, Mahalanobis, LOF, IsolationForest).
 - Clase 04 — Datos faltantes (MCAR/MAR/MNAR; eliminar, imputar; sustitución por media/mediana/moda; **Hot Deck**, **Cold Deck**; regresión; **MICE**; KNN; marcadores de ausencia).
+- **Clase 07 — Ingeniería de atributos** (NUEVO E3): transformaciones (log, sqrt, Box-Cox), discretización, binarización, interacciones, extracción de features de texto/fechas, normalización; `sklearn.preprocessing`.
+- **Clase 08 — Reducción de dimensionalidad** (NUEVO E3): `VarianceThreshold`, `SelectKBest` (chi2, f_regression, mutual_info), PCA (`sklearn.decomposition`), TruncatedSVD; análisis de varianza explicada.
 
 ### Colabs prácticos (`colabs_clase/`)
 
@@ -329,16 +364,21 @@ Notebook base provista: `Colab_Base_para_el_Trabajo_Práctico_(Entrega_2).ipynb`
 - Clase 04 — Datos faltantes.
 - Clase 05 — Práctica de outliers (penguins + IsolationForest).
 - Clase 05 — Práctica de datos faltantes (Ames Housing + KNN/MICE).
+- **Clase 07 — Ingeniería de atributos** (NUEVO E3): `Clase_07_Ingeniería_de_atributos.ipynb`.
+- **Clase 08 — Reducción de dimensionalidad** (NUEVO E3): `Clase_08_Reducción_de_dimensionalidad.ipynb`.
+- Colab base E3 del docente: `Colab_Base_para_el_Trabajo_Práctico_(Entrega_3).ipynb` (en `colabs_clase/`).
 
-### Librerías permitidas (vistas en clase)
+### Librerías permitidas (vistas en clase hasta E3)
 
 `pandas`, `numpy`, `matplotlib`, `seaborn`, `sqlite3`, `scipy.stats.zscore`, y de `sklearn`:
 
 - `model_selection`, `ensemble.RandomForestRegressor`, `ensemble.IsolationForest`.
 - `metrics.root_mean_squared_error`.
-- `preprocessing.StandardScaler`.
+- `preprocessing.StandardScaler`, `LabelEncoder`, `OrdinalEncoder`, `KBinsDiscretizer`, `Binarizer`, `PolynomialFeatures`.
 - `neighbors.LocalOutlierFactor`.
 - `impute.SimpleImputer`, `KNNImputer`, `IterativeImputer` (MICE), `MissingIndicator`.
+- **`feature_selection.VarianceThreshold`, `SelectKBest`, `chi2`, `f_regression`, `mutual_info_regression`** (Clase 08).
+- **`decomposition.PCA`, `TruncatedSVD`** (Clase 08).
 
 ## Estrategia ganadora (sugerida por amigo que ya cursó)
 
@@ -351,7 +391,7 @@ Notebook base provista: `Colab_Base_para_el_Trabajo_Práctico_(Entrega_2).ipynb`
 5. Tratar outliers.
 6. Imputar faltantes (promedios / mediana / KNN).
 
-## Plan de la Entrega 2 (lo que estoy implementando)
+## Plan de la Entrega 2 
 
 Notebook reorganizada manteniendo la estructura base, en este orden lógico:
 
@@ -798,7 +838,20 @@ Esta sub-sección es la **única** parte que cambia entrega a entrega y la que
 el prompt del LLM debe leer para particularizar las reglas genéricas de
 arriba. Hay que actualizarla antes de cada entrega nueva.
 
-**Entrega 2 — parámetros del informe**:
+**Entrega 3 — parámetros del informe** *(entrega en curso)*:
+
+- **Consigna**: `Consigna Entrega Parcial 3.pdf` — pendiente de revisar sub-ítems exactos. Una vez revisada, actualizar esta sección con la denotación, encabezados y sub-preguntas.
+- **Encabezados base esperados** (a confirmar con la consigna): probablemente `A. Ingeniería de atributos`, `B. Reducción de dimensionalidad`, `C. Modelo (Predicción)`, `D. Entrega`. Ajustar cuando se lea el PDF.
+- **Punto que exige comparación con entrega anterior**: comparar contra E2 (mejor Kaggle E2 = 93 151, v4). Tabla **E2 vs E3** con el campeón de cada entrega.
+- **Restricción técnica**: HP `n_estimators` y `max_depth` son modificables en E3. Técnicas de clase 07 (FE) y clase 08 (dim reduction) habilitadas. Sin datos externos.
+- **Arco narrativo esperado** (guía):
+  - Introducción: heredo pipeline E2-v4 (filtros, outliers, imputación, Hot Deck); qué agrego en E3.
+  - FE: de los faltantes de m2/dormitorios/baños (hallazgo) → parseo dual (hipótesis) → rescate cuantificado (experimento) → mejora CV5+holdout temporal (resultado). Log-transforms: skew observado → hipótesis de splits → delta en métricas.
+  - Dim reduction: qué técnica elegí (VarianceThreshold / PCA / SelectKBest), por qué, resultado.
+  - Modelo: tabla E2 vs E3 con Kaggle RMSE.
+  - Cierre: próximos pasos → E4 (datos no estructurados, APIs, geográficos).
+
+**Entrega 2 — parámetros del informe** *(referencia histórica)*:
 
 - **Denotación de la consigna**: literales `A / B / C / D` con sub-ítems
   `A.1, A.2, A.3, B.1, B.2, B.3`.
@@ -926,9 +979,12 @@ python entregas/run_entrega.py --record-kaggle --entrega entrega_2 \
 
 ### Resultados ya registrados
 
-| entrega | nombre | RMSE holdout | RMSE Kaggle |
-|---|---|---:|---:|
-| entrega_2 | v1 | 118 866.97 | **93 167.324** |
+| entrega | nombre | RMSE CV5 (mean) | RMSE holdout temporal | RMSE Kaggle |
+|---|---|---:|---:|---:|
+| entrega_2 | v1 | — | — | 93 167.324 |
+| entrega_2 | v4 (campeón E2) | 117 219 | — | 93 151 |
+| entrega_3 | v1 | 116 669.79 | 117 235.85 | 93 147 |
+| entrega_3 | **v2 (campeón actual)** | **112 776.86** | **111 536.16** | **91 399** |
 
 ### Notas operativas
 

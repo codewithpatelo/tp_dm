@@ -62,7 +62,7 @@ def run_notebook_only(entrega: str, nombre: str, desc: str) -> int:
     print("[run_entrega] ejecutando notebook (con CV5 puede tardar ~20-30 min)...", flush=True)
 
     nb = nbformat.read(NOTEBOOK, as_version=4)
-    ep = ExecutePreprocessor(timeout=3600, kernel_name="python3")
+    ep = ExecutePreprocessor(timeout=7200, kernel_name="python3")
     try:
         ep.preprocess(nb, {"metadata": {"path": str(ROOT)}})
     except CellExecutionError as e:
@@ -175,8 +175,8 @@ def post_process(entrega: str, nombre: str, *, allow_submit: bool) -> int:
     else:
         is_local_better = ok_cv5 and ok_temp
         criterio = (
-            f"CV5 ok={ok_cv5} (Δ={delta_cv5:+.0f}, req >{MARGEN_CV5:.0f}) | "
-            f"holdout_temp ok={ok_temp} (Δ={delta_temp:+.0f}, "
+            f"CV5 ok={ok_cv5} (D={delta_cv5:+.0f}, req >{MARGEN_CV5:.0f}) | "
+            f"holdout_temp ok={ok_temp} (D={delta_temp:+.0f}, "
             f"req >{MARGEN_HOLDOUT_TEMPORAL:.0f})"
         )
     print(f"[run_entrega] criterio: {criterio}")

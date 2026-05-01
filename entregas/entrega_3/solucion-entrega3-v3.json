@@ -1,0 +1,215 @@
+{
+  "entrega": "entrega_3",
+  "nombre": "v3",
+  "descripcion": "Log-transforms de variables sesgadas: log1p(m2/dormitorios/banos/len_desc/n_features)",
+  "timestamp": "2026-05-01T09:19:48",
+  "hostname": "WIN-CMX7BS3",
+  "python": "3.13.7",
+  "in_colab": false,
+  "params": {
+    "filtros": {
+      "caba_l1_estricto": [
+        "Capital Federal",
+        "Ciudad Autónoma de Buenos Aires"
+      ],
+      "caba_l1_ampliado_via_loc2_loc3": true,
+      "property_type": [
+        "casa",
+        "casas",
+        "cochera",
+        "departamento",
+        "departamentos",
+        "ph"
+      ],
+      "operation_type": "venta",
+      "currency_type": "dolares",
+      "price_min": 5000,
+      "price_max": 3000000
+    },
+    "outlier_caps": {
+      "m2": [
+        10,
+        1500
+      ],
+      "n_dormitorios": [
+        0,
+        15
+      ],
+      "n_banos": [
+        0,
+        15
+      ]
+    },
+    "isolation_forest": {
+      "contamination": 0.01,
+      "cols": [
+        "price",
+        "m2",
+        "n_dormitorios",
+        "n_banos"
+      ],
+      "scaled": "StandardScaler"
+    },
+    "imputacion": {
+      "numericas": {
+        "m2": "median (global, fit on train)",
+        "lat": "median (global, fit on train)",
+        "lon": "median (global, fit on train)",
+        "n_dormitorios": "median (global, fit on train)",
+        "n_banos": "median (global, fit on train)",
+        "len_descripcion": "median (global, fit on train)",
+        "n_features": "median (global, fit on train)",
+        "rooms": "median (global, fit on train)"
+      },
+      "categoricas": {
+        "property_type": "most_frequent (fit on train)",
+        "barrio": "most_frequent (fit on train)"
+      },
+      "marcador_m2_was_na": true
+    },
+    "fe_version": "v3-parseo-dual+log-transforms",
+    "fe_parseo_dual": {
+      "descripcion": "fallback description cuando features da NaN en m2/dormitorios/banos",
+      "nueva_feature": "rooms (ambientes desde description, patron X amb)",
+      "rescatados_train": {
+        "m2": 10844,
+        "n_dormitorios": 3168,
+        "n_banos": 2293
+      },
+      "rescatados_test": {
+        "m2": 29,
+        "n_dormitorios": 80,
+        "n_banos": 55
+      }
+    },
+    "fe_log_transforms": {
+      "descripcion": "log1p de variables numericas sesgadas (post-imputation, fit on train implicitly)",
+      "columnas_input": [
+        "m2",
+        "n_dormitorios",
+        "n_banos",
+        "len_descripcion",
+        "n_features"
+      ],
+      "columnas_output": [
+        "log1p_m2",
+        "log1p_n_dormitorios",
+        "log1p_n_banos",
+        "log1p_len_descripcion",
+        "log1p_n_features"
+      ],
+      "estrategia": "columnas nuevas (prefijo log1p_) manteniendo originales para comparacion",
+      "justificacion_skew": {
+        "m2": 3.71,
+        "n_dormitorios": 5.13,
+        "n_banos": ">>10 post-capping",
+        "len_descripcion": 1.44,
+        "n_features": 1.07
+      }
+    },
+    "dim_reduction_version": "v1-placeholder",
+    "hotdeck": {
+      "key": "description_normalizada",
+      "normalizacion": "lower + sin_acentos + sin_puntuacion + colapsar_espacios + min_20_chars",
+      "agg": "median",
+      "fuente": "train completo (venta + USD)"
+    },
+    "target_encoding_barrio": "DESACTIVADO (leakage E2-v2/v3)",
+    "modelo": {
+      "tipo": "RandomForestRegressor",
+      "n_estimators": 500,
+      "max_depth": "50",
+      "random_state": 42,
+      "split": "train_test_split(test_size=0.2, random_state=42)"
+    },
+    "validacion_primaria": "KFold(5) x 3 seeds"
+  },
+  "data": {
+    "train_post_filtro": [
+      123102,
+      18
+    ],
+    "outliers_if_eliminados": 760,
+    "train_post_outliers": [
+      122342,
+      41
+    ],
+    "hotdeck_overrides": 1058,
+    "hotdeck_coverage_pct": 7.85,
+    "test_predicciones": 13471,
+    "hotdeck_overrides_aplicados": 1058
+  },
+  "metricas": {
+    "rmse_train": 41844.16661704095,
+    "rmse_holdout": 116821.38263471774,
+    "n_features": 32,
+    "features": [
+      "lat",
+      "lon",
+      "n_dormitorios",
+      "n_banos",
+      "m2",
+      "f_balcon",
+      "f_garage",
+      "f_cochera",
+      "f_pileta",
+      "f_parrilla",
+      "f_aire_acondicionado",
+      "f_calefaccion",
+      "f_gas_natural",
+      "f_internet",
+      "f_seguridad",
+      "f_alarma",
+      "f_gimnasio",
+      "f_jardin",
+      "f_cuarto_de_servicio",
+      "f_cocina_equipada",
+      "f_bodega",
+      "rooms",
+      "len_descripcion",
+      "n_features",
+      "m2_was_na",
+      "log1p_m2",
+      "log1p_n_dormitorios",
+      "log1p_n_banos",
+      "log1p_len_descripcion",
+      "log1p_n_features",
+      "barrio_id",
+      "property_type_id"
+    ],
+    "rmse_cv5_folds": [
+      113761.14267782531,
+      113581.07559024655,
+      114370.56680649947,
+      110595.58957182794,
+      111422.19851422329,
+      111965.84310482675,
+      116197.1952094485,
+      115380.13936564463,
+      114537.29756801027,
+      109141.33188798171,
+      111825.1304186651,
+      115043.92620214733,
+      110193.17399156696,
+      115151.16504040493,
+      110094.23429762186
+    ],
+    "rmse_cv5_mean": 112884.00068312936,
+    "rmse_cv5_std": 2184.5009307497485,
+    "rmse_holdout_temporal": 111555.58119042324,
+    "pred_p05": 76000.0,
+    "pred_mediana": 162000.0,
+    "pred_p95": 574000.0
+  },
+  "kaggle": {
+    "rmse": null,
+    "submitted_at": null,
+    "leaderboard_position": null
+  },
+  "output": {
+    "csv": "entregas/entrega_3/solucion-entrega3-v3.csv",
+    "csv_md5": "5a67e41ce56fbadc24412e4369c43968",
+    "json": "entregas/entrega_3/solucion-entrega3-v3.json",
+    "kaggle_submit_message": "entrega_3/v3: Log-transforms de variables sesgadas: log1p(m2/dormitorios/banos/len_desc/n_features)"
+  }
+}
