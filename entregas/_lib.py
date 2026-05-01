@@ -155,7 +155,7 @@ def submit_to_kaggle(
         return None
 
     try:
-        print(f"[kaggle] submit: {csv_path.name} → {COMPETITION}")
+        print(f"[kaggle] submit: {csv_path.name} -> {COMPETITION}")
         print(f"[kaggle] desc  : {message}")
         api.competition_submit(str(csv_path), message, COMPETITION)
     except Exception as e:

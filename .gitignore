@@ -42,3 +42,8 @@ venv/
 Thumbs.db
 
 # Notebook outputs grandes (si en algún momento querés stripear, dejarlo manual)
+
+# GUI: memoria persistente del agente cognitivo (local, no committeable)
+gui/_memory/
+gui/.streamlit/secrets.toml
+

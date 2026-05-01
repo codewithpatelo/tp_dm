@@ -35,7 +35,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-NOTEBOOK = ROOT / "Colab_Base_para_el_Trabajo_Práctico_(Entrega_2).ipynb"
+NOTEBOOK = ROOT / "Colab_Base_para_el_Trabajo_Práctico_(Entrega_3).ipynb"
 
 sys.path.insert(0, str(ROOT / "entregas"))
 import _lib  # noqa: E402
@@ -68,7 +68,7 @@ def run_notebook_only(entrega: str, nombre: str, desc: str) -> int:
     except CellExecutionError as e:
         executed_path = out_dir / f"{entrega}_{nombre}.failed.ipynb"
         nbformat.write(nb, executed_path)
-        print("[run_entrega] FALLÓ una celda:", file=sys.stderr)
+        print("[run_entrega] FALLO una celda:", file=sys.stderr)
         print(e, file=sys.stderr)
         print(f"[run_entrega] notebook con error guardada en {executed_path}",
               file=sys.stderr)
@@ -76,7 +76,7 @@ def run_notebook_only(entrega: str, nombre: str, desc: str) -> int:
 
     executed_path = out_dir / f"{entrega}_{nombre}.executed.ipynb"
     nbformat.write(nb, executed_path)
-    print(f"[run_entrega] notebook ejecutada → {executed_path}")
+    print(f"[run_entrega] notebook ejecutada -> {executed_path}")
     return 0
 
 
@@ -190,13 +190,13 @@ def post_process(entrega: str, nombre: str, *, allow_submit: bool) -> int:
         print("[run_entrega] cumple el doble criterio, pero --no-submit activo: skip submit.")
         return 0
 
-    print("[run_entrega] cumple el doble criterio → submit automático a Kaggle.")
+    print("[run_entrega] cumple el doble criterio -> submit automatico a Kaggle.")
     submit_msg = meta.get("output", {}).get("kaggle_submit_message") or f"{entrega}/{nombre}: {desc}"
     rmse_kaggle = _lib.submit_to_kaggle(csv_path, submit_msg)
 
     if rmse_kaggle is None:
-        print("[run_entrega] submit fallido o sin score; el CSV está listo "
-              "para subir a mano. Anotalo después con --record-kaggle.")
+        print("[run_entrega] submit fallido o sin score; el CSV esta listo "
+              "para subir a mano. Anotalo despues con --record-kaggle.")
         return 0
 
     print(f"[run_entrega] Kaggle publicScore = {rmse_kaggle:.3f}")
@@ -212,7 +212,7 @@ def post_process(entrega: str, nombre: str, *, allow_submit: bool) -> int:
         print("[run_entrega] el Kaggle no mejora al mejor previo; NO regenero informe.")
         return 0
 
-    print("[run_entrega] nuevo CAMPEÓN (mejora local + Kaggle) → regenero informe.")
+    print("[run_entrega] nuevo CAMPEON (mejora local + Kaggle) -> regenero informe.")
     ok = _lib.regenerate_informe(entrega, nombre, json_path, informe_path)
     return 0 if ok else 0
 
@@ -232,7 +232,7 @@ def record_kaggle_manual(entrega: str, nombre: str, kaggle_rmse: float) -> int:
     rows = _lib.parse_leaderboard(out_dir / "leaderboard.md")
     best_k_prev = _lib.best_kaggle(rows, exclude=nombre)
     if best_k_prev is None or kaggle_rmse < best_k_prev:
-        print("[record_kaggle] nuevo CAMPEÓN Kaggle → regenero informe.")
+        print("[record_kaggle] nuevo CAMPEON Kaggle -> regenero informe.")
         informe_path = out_dir / f"Entrega_{entrega.split('_')[-1]}_informe.md"
         _lib.regenerate_informe(entrega, nombre, json_path, informe_path)
     return 0

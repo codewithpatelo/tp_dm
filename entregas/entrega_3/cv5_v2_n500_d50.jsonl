@@ -1,0 +1,10 @@
+{"key": "s0_f0", "combo": {"seed": 0, "fold": 0}, "result": {"rmse": 113429.76253048655}, "fit_time_s": 80.4, "ts": "2026-04-30T21:40:07"}
+{"key": "s0_f1", "combo": {"seed": 0, "fold": 1}, "result": {"rmse": 113356.74330907558}, "fit_time_s": 86.9, "ts": "2026-04-30T21:41:34"}
+{"key": "s0_f2", "combo": {"seed": 0, "fold": 2}, "result": {"rmse": 114411.82371518822}, "fit_time_s": 81.3, "ts": "2026-04-30T21:42:55"}
+{"key": "s0_f3", "combo": {"seed": 0, "fold": 3}, "result": {"rmse": 110612.5970050705}, "fit_time_s": 80.2, "ts": "2026-04-30T21:44:15"}
+{"key": "s0_f4", "combo": {"seed": 0, "fold": 4}, "result": {"rmse": 111491.79705643862}, "fit_time_s": 80.5, "ts": "2026-04-30T21:45:36"}
+{"key": "s1_f0", "combo": {"seed": 1, "fold": 0}, "result": {"rmse": 111786.98926546246}, "fit_time_s": 2172.7, "ts": "2026-04-30T22:21:49"}
+{"key": "s1_f1", "combo": {"seed": 1, "fold": 1}, "result": {"rmse": 116055.14251671414}, "fit_time_s": 62.9, "ts": "2026-04-30T22:22:51"}
+{"key": "s1_f2", "combo": {"seed": 1, "fold": 2}, "result": {"rmse": 115301.7814713219}, "fit_time_s": 66.3, "ts": "2026-04-30T22:23:58"}
+{"key": "s1_f3", "combo": {"seed": 1, "fold": 3}, "result": {"rmse": 114486.72129387697}, "fit_time_s": 69.4, "ts": "2026-04-30T22:25:07"}
+{"key": "s1_f4", "combo": {"seed": 1, "fold": 4}, "result": {"rmse": 109095.00813859643}, "fit_time_s": 78.7, "ts": "2026-04-30T22:26:26"}

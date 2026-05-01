@@ -1,0 +1,50 @@
+# indices_macro_arg.yml — STUB con formato esperado por drift_correct.py
+#
+# Cada clave es la "serie" (ipc / dolar_oficial / dolar_blue / uva) y cada
+# sub-clave es el período en formato yyyymm (entero) con su valor del último
+# día hábil del mes (o promedio mensual, ser consistente).
+#
+# IMPORTANTE: este archivo está VACÍO de datos reales. Sólo muestra el formato
+# con valores placeholder de los primeros 3 meses del train (oct-2021 a
+# dic-2021) tomados del script R original (que llegan hasta sep-2021 — los de
+# acá son extrapolados sólo para que el formato quede claro). NO USAR como si
+# fueran datos reales.
+#
+# Antes de usar en EF, completar las 4 series desde:
+#   - IPC:           INDEC (https://www.indec.gob.ar/)
+#   - dolar_oficial: BCRA, serie A3500 (https://www.bcra.gob.ar/)
+#   - dolar_blue:    ámbito.com  o  bluelytics.com.ar (API pública)
+#   - UVA:           BCRA (https://www.bcra.gob.ar/PublicacionesEstadisticas/Principales_variables.asp)
+#
+# Convención del IPC y UVA: normalizados a 1.0 para un mes de referencia
+# (ej. dic-2024 = 1.0). Meses anteriores tendrán valores > 1.0 (porque hay
+# que MULTIPLICAR para llevar a la escala de referencia desde un período de
+# precios más bajos), meses posteriores < 1.0.
+#
+# Convención dolar_*: cotización del dólar en pesos para ese mes.
+#
+# Períodos relevantes para el TP: 202110 a 202606 (oct-2021 a jun-2026).
+
+ipc:
+  202110: 1.0      # PLACEHOLDER — completar con valor real
+  202111: 1.0      # PLACEHOLDER
+  202112: 1.0      # PLACEHOLDER
+  # ... completar hasta 202606 ...
+
+dolar_oficial:
+  202110: 100.0    # PLACEHOLDER
+  202111: 100.0    # PLACEHOLDER
+  202112: 100.0    # PLACEHOLDER
+  # ... completar hasta 202606 ...
+
+dolar_blue:
+  202110: 195.0    # PLACEHOLDER
+  202111: 200.0    # PLACEHOLDER
+  202112: 207.0    # PLACEHOLDER
+  # ... completar hasta 202606 ...
+
+uva:
+  202110: 1.0      # PLACEHOLDER
+  202111: 1.0      # PLACEHOLDER
+  202112: 1.0      # PLACEHOLDER
+  # ... completar hasta 202606 ...

@@ -131,20 +131,72 @@ fui evolucionando):
 
 ---
 
-## El proceso de aprendizaje (lecciones de cada experimento)
+## El proceso de aprendizaje (lecciones de cada entrega)
+
+### Entrega 1 — Filtros (RMSE final: 166 979)
+
+E1 fue básicamente aprender que **el train y el test no son
+distribuciones iguales**: el test ya viene filtrado (100 % CABA,
+sólo `venta` + `dolares`, precios en rangos razonables) y el train
+es un raw scrape con basura (alquileres en pesos, propiedades en
+provincias, precios absurdos). Sin orquestador todavía, las
+soluciones venían numeradas por el browser (`solucion (1).csv`…
+`solucion (12).csv`).
+
+| Submission | RMSE Kaggle | Qué cambió respecto a la anterior |
+|---|---:|---|
+| `solucion.csv` | 331 069 | Baseline: `RandomForest(500, 50)` sobre el train **sin filtrar**. El RF aprende a "predecir" precios mezclando alquileres en pesos con ventas en USD. |
+| `solucion (4).csv` | 538 206 ⚠️ | Toqué hiperparámetros sin filtrar primero — peor que el baseline |
+| `solucion (10).csv` | 204 147 | Filtro mínimo: `currency_type = "dolares"`. Saca el grueso de la basura. |
+| `solucion (11).csv` | 192 651 | Agrego `operation_type = "venta"` |
+| `solucion (3).csv` | 173 224 | Agrego `location_1 ∈ {Capital Federal, CABA}` (alineo con el test) |
+| `solucion (2).csv` | 183 585 | Probé un cap de precio muy agresivo — empeora |
+| `solucion (1).csv` | 171 308 | Cap de precio razonable: `[USD 5 000, USD 3 000 000]` |
+| **`solucion (12).csv`** | **166 979** ✓ | + unificar `property_type` (`departamento`/`departamentos`, `casa`/`casas`) + `fillna(0)` para faltantes |
+
+**Lecciones de E1**:
+
+1. **Filtrar es más importante que tunear**. Pasé de 538 k a 167 k
+   RMSE sin tocar el modelo, sólo alineando el train al universo del
+   test (CABA + venta + USD + rango de precios sensato).
+2. **Antes de modelar, mirar la distribución del test**. La regla
+   "train y test vienen del mismo proceso" no aplica acá; entender
+   esa diferencia es la primera mitad del trabajo.
+3. **Un baseline malo igual sirve**: las primeras submissions con
+   RMSE 300-500 k fueron las que me motivaron a leer las
+   distribuciones y darme cuenta del gap.
+4. **`fillna(0)` como baseline de imputación**: feo pero
+   reproducible — permite empezar a iterar sin pelearse con NaN
+   antes de tiempo. El refinamiento (mediana, KNN, Hot Deck) llega
+   en E2.
+
+### Entrega 2 — Outliers + faltantes (RMSE final: 93 151)
+
+A partir de v4, ya con orquestador armado: cada experimento queda
+versionado, registrado en `leaderboard.md` y con un JSON de
+parámetros completos.
 
 | Versión | Cambio | RMSE Kaggle | Lección clave |
 |---|---|---:|---|
-| v1 | Pipeline base (filtro + parsing + outliers + impute + HD) | **93 167** | Tener un baseline reproducible vale más que cualquier feature nueva |
+| v1 | Pipeline base (filtro + parsing de `features` + outliers + imputación + Hot Deck) | **93 167** | Tener un baseline reproducible vale más que cualquier feature nueva |
 | v2 | Agregué `precio_mediano_barrio` y `precio_mediano_barrio_tipo` | 96 891 ⚠️ | **Target leakage**: usar precio del train para imputar features rompe en producción |
-| v3 | Imputé lat/lon por mediana de barrio en lugar de global | 97 423 ⚠️ | Otro leakage encubierto: la "señal extra" venía del target, no de la geografía |
-| **v4** | **Hot Deck con descripción NORMALIZADA** (lower/sin acentos/sin puntuación) | **93 151** ✓ | Mejorar la **calidad** del input es más rentable que agregar features dudosas |
-| v5 | 8 features nuevas (floor, calidad textual, temporales) | 97 498 ⚠️ | CV5 mejoró −4 877; Kaggle empeoró +4 347 → **distribution shift no detectado** |
+| v3 | Imputé `lat/lon` por mediana de barrio en lugar de global | 97 423 ⚠️ | Otro leakage encubierto: la "señal extra" venía del target, no de la geografía |
+| **v4** | **Hot Deck con descripción NORMALIZADA** (lower / sin acentos / sin puntuación / min 20 chars) | **93 151** ✓ | Mejorar la **calidad** del input es más rentable que agregar features dudosas |
+| v5 | 8 features nuevas (`floor`, calidad textual, temporales) | 97 498 ⚠️ | CV5 mejoró −4 877; Kaggle empeoró +4 347 → **distribution shift no detectado** |
 | v6 | Diagnóstico: CV5 multi-seed + **holdout temporal** + mini-ablation | (no submit) | Holdout temporal +10 491 sobre CV5 confirma el shift; aisló culpables (`pub_year`/`pub_month` rompen +3 385 puro) |
 
-**v4 sigue siendo el campeón** después de 6 iteraciones. La lección
-meta: a veces la mejor entrega es la que NO subís, porque tu
-diagnóstico te dijo que el "ganador local" era ruido.
+**v4 sigue siendo el campeón** después de 6 iteraciones. Las
+lecciones meta de E2:
+
+- A veces la mejor entrega es la que **NO** subís, porque tu
+  diagnóstico te dijo que el "ganador local" era ruido (v6).
+- Cada vez que el local mejora pero Kaggle empeora, hay leakage o
+  shift — siempre. Pasó tres veces (v2, v3, v5). El patrón es tan
+  consistente que se volvió regla del orquestador (auto-submit
+  requiere mejora simultánea CV5 + holdout temporal).
+- **Refinar la calidad de los inputs existentes** (Hot Deck v4 con
+  descripción normalizada: +1 % de coverage por normalizar acentos
+  y puntuación) puede valer más que agregar features nuevas.
 
 ---
 

@@ -1,5 +1,15 @@
 # Contexto del Trabajo Práctico — Data Mining (UBA Exactas)
 
+**Resumen ejecutivo del avance del TP:** [`estado_actual.md`](estado_actual.md).
+
+**Política de mantenimiento:** cada vez que haya avances relevantes del TP
+(nuevo campeón en Kaggle, cambio de entrega en curso, decisiones metodológicas
+que muevan el foco), actualizar **`estado_actual.md`** con un snapshot breve
+(tabla de entregas, campeón vigente, métricas clave) y sumar una línea al
+historial del mismo archivo. Este `CONTEXT.md` sigue siendo la fuente canónica
+de detalle (lecciones, backlog, consignas); el otro archivo existe para que
+agentes y lectores rápidos vean el estado sin hojear novecientas líneas.
+
 ## Datos del curso
 
 - **Materia:** Data Mining
@@ -37,6 +47,34 @@ apuntar al foco temático de la siguiente: el cierre de E2 ya tiene que
 estar mirando hacia ingeniería de atributos + reducción de
 dimensionalidad, el de E3 hacia datos no estructurados + geográficos,
 etc.
+
+### Backlog de ideas para entregas futuras
+
+Lugar para acumular ideas que aparecen en el medio del trabajo de una
+entrega y NO encajan en la entrega actual (por restricción técnica o
+porque el foco temático es otro). El objetivo es no perderlas y que
+cuando arranque la entrega que sí las habilita ya estén con justificación
+escrita.
+
+| Idea | Entrega objetivo | Por qué no encaja antes | Estado |
+|---|---|---|---|
+| Embeddings de `description` con `sentence-transformers` (ej. `paraphrase-multilingual-MiniLM-L12-v2`) → reducción a ~20 dims con PCA → features para el RF | **Entrega Final** (o E4 si el alcance lo permite) | E3 sólo permite librerías y técnicas vistas en clase ≤ 8. `sentence-transformers` no es librería de clase y los pesos pre-entrenados violan la regla "sin datos externos" (el corpus de pre-training casi seguro contiene avisos de Properati / Zonaprop). E4 abre la puerta de "datos no estructurados", entrega final permite integración completa. Diagnóstico complementario: la versión "regex frágil → embeddings densos" sobre-atribuye el fallo de v5 (E2) a la fragilidad del regex; el error analysis mostró que el shift de v5 vino mayormente de `pub_year`/`pub_month`, no de las features textuales. Igual la idea de comprimir semántica de `description` con embeddings densos sigue siendo de las más prometedoras una vez levantada la restricción. | Pendiente. Versión "ML clásica" defendible en E3 si clase 8 lo banca: `TfidfVectorizer(ngram_range=(1,2), min_df=20, max_features=2000)` + `TruncatedSVD(n_components=20)` sobre `description_norm`. Misma forma del pipeline (vectorizar → reducir → features), técnicas dentro del scope. Decidir cuando llegue el material de clase 8. |
+| **RAG semántico de comparables**: para cada fila, embebés `description + features estructuradas`, buscás los K vecinos más cercanos en train con FAISS, y el `precio_mediano_ponderado_vecinos` entra como feature al RF. Es la versión semántica del Hot Deck (similitud densa en vez de match exacto de texto). | **Entrega Final** (o E4 si el alcance lo banca) | Mismo problema de embeddings + librería externa (FAISS no es de clase). **Trampa crítica que NO mencionar como "zero leakage"**: es target encoding y necesita CV-aware. Para cada fold de train, los K vecinos deben venir del train *fuera del fold* (out-of-fold encoding al estilo `category_encoders.TargetEncoder`); si se hace naive (K vecinos en TODO el train, incluida la propia fila), el CV5 se infla artificialmente y se repite el desastre de v2 (`precio_mediano_barrio` con +3 740 RMSE en Kaggle). Para test sí es seguro siempre (no hay target). | Pendiente. Implementación correcta: KFold sobre train, para cada fold buscar vecinos sólo en los otros 4 folds, generar la feature out-of-fold, refittear FAISS sobre todo el train para inferir sobre test. |
+| **LLM structured extraction batch (Llama 3 / Mistral local con Ollama)**: un LLM local procesa cada `description` y devuelve un JSON estructurado con `{floor, view_type, renovation_year, parking_covered, storage_room, orientation, calidad_materiales, ...}`. Captura todo lo que v5 intentó con regex frágil pero con comprensión semántica, sin costo de API y sin enviar datos afuera. | **Entrega Final** (puede caber en E4 si el enunciado lista LLMs locales como herramientas habilitadas) | Llama / Ollama son modelos externos (mismo argumento que embeddings). 130 K avisos × Llama 3 8B en CPU = ~30-50 horas; con GPU consumer ~3-5 h; con sampling de 20 K avisos representativos (estratificado por `barrio × tipo × decil_precio`) y propagación al resto por kNN sobre embeddings, ~30 min. Riesgo a controlar: el JSON puede salir inconsistente entre filas (mismo campo con valores en distintos formatos / idiomas). | Pendiente. Implementación segura: schema-enforced con `instructor` / `outlines` / `guidance` (forzar JSON válido contra un Pydantic model), `temperature=0` para reproducibilidad, validación post-hoc y reportar `% de filas con extracción exitosa` por feature. Persistir resultados a parquet (no llamar al LLM de nuevo si ya está hecho). |
+| **Normalización temporal del precio con FX paralelo / índice CABA**: el dataset cubre oct-2021 a jun-2026, período de fuerte variación del dólar paralelo en Argentina. `price_USD_normalizado = price_USD / fx_paralelo[publication_date]` antes de entrenar; al predecir, multiplicar por `fx_paralelo[publication_date_test]` para volver a la escala original. Variante más simple: agregar `fx_paralelo_at_pub`, `fx_oficial_at_pub`, `inflacion_acum_12m_at_pub`, `tasa_badlar_at_pub` como features adicionales y dejar que el RF aprenda solo cómo usarlas. | **Entrega 4** | Requiere dataset externo (serie histórica del dólar paralelo / blue / MEP, índice CAMARA / RECC / INDEC). E4 habilita "APIs y web scraping" → series de BCRA, ámbito.com, Bluelytics son APIs públicas legítimas. **Es la única estrategia que ataca de raíz el shift temporal** que el `error_analysis_v4` confirmó como problema real (holdout entera en ene/jun 2026, train mayormente 2021-2024 con dólar muy distinto). | Pendiente. Implementación con cuidado de inversa: si normalizás dividiendo, **multiplicás al predecir** (regla del CONTEXT.md sobre target transforms aplicada a normalización por feature externa). Necesitás la serie de FX hasta jun-2026 inclusive. Empezar por la variante "FX como feature" (más simple, menor superficie de error) y comparar contra normalización completa. |
+| **Biblioteca de corrección de data drifting (port del workflow de Lab II)**: 7 métodos parametrizados por período para neutralizar el shift temporal de variables monetarias. Métodos sin datos externos: `rank_simple` (rank percentil [0,1] por período), `rank_cero_fijo` (variante que mantiene 0→0), `estandarizar` (Z-score por período). Métodos macro (requieren tabla de índices): `deflacion` (×IPC), `dolar_oficial` / `dolar_blue` (÷FX del período), `uva` (×UVA). | **Entrega Final** (los 3 métodos sin datos externos podrían colarse antes; los macro caen en E4 junto con la idea anterior) | Es la implementación concreta de la idea anterior pero generalizada a cualquier feature monetaria, no sólo `price`. Para los métodos `rank_*` y `estandarizar` no hay restricción de datos externos; lo que NO encaja en E3 es la decisión de qué normalización aplicar (sobre el target o sobre features) y la falta de tabla macro lista. | Starter ya armado en `entregas/entrega_f/drift_correct.py` (port directo del R `z1401_DR_corregir_drifting.r` de la materia hermana, con el ajuste de fittear estadísticas SOLO en train). Stub del YAML de índices en `entregas/entrega_f/indices_macro_arg.yml` documentando fuentes (INDEC, BCRA, Bluelytics). En EF: completar series + comparar RMSE en holdout temporal de cada método contra baseline sin corrección. Decisión empírica, no teórica. |
+| **Diagnóstico cuantitativo + visual de data drifting**: complemento al starter de corrección. Para cada feature, calcular PSI / KS / Wasserstein / JS divergence comparando "train viejo vs train nuevo vs test", + CDFs superpuestas en escala `sign(x)·log2(|x|+1)` (la transformación del script R original que comprime colas sin perder signo). Output: ranking de features por magnitud de drift + PDF con gráficos por feature. | **Entrega Final** (idealmente como paso 1 antes de aplicar `drift_correct.py`) | Sin datos externos en sí, pero requiere `scipy.stats` (KS, Wasserstein) y `matplotlib` para los CDFs — todas estándar pero la decisión metodológica de "diagnóstico antes de corrección" pertenece más a EF que a E3. | Pendiente. Workflow ideal: `drift_detect.py` → "estas N features driftean" → `drift_correct.py` → dataset corregido por método → comparar RMSE en holdout temporal. El R original (`densidades_<mes0>_<mes1>.pdf`) hace una versión visual; acá agregaría la cuantitativa con métricas de divergencia. |
+| **Creacionismo: search evolutivo de features con canary pruning** (contribución original del autor en Lab II — Economía y Finanzas, materia hermana). Algoritmo iterativo: (1) ajustar modelo, ranquear features por importancia; (2) tomar top-20 y generar TODOS los pares cruzados con `+ - * /` → ~840 features candidatas; (3) inyectar features completamente random ("canaritos") al dataset, medir su importancia, y descartar TODA feature humana con importancia menor que `median(importancia_canaritos) + N·std` — control empírico de hipótesis nula contra ruido puro; (4) opcionalmente agregar leaf indices del modelo como features one-hot; (5) iterar. Encuentra interacciones de orden N sin enumeración manual y poda con criterio cuantitativo en lugar de intuición. | **Entrega Final** | E3-E4 está totalmente fuera de scope: es un meta-algoritmo de búsqueda de features que va más allá de lo enseñado en clases 7-8 (transformaciones, discretización, atributos derivados manuales). En EF tiene peso narrativo extra: **extender una contribución original propia** (publicada en colaborativo del Lab II) adaptándola de clasificación binaria de churn a regresión continua de precios. | Pendiente. Adaptaciones requeridas vs. el original R: (a) RF / LGBM regresión en lugar de LGBM binario, (b) `feature_importances_` de sklearn en lugar de "ganancia con meseta" custom, (c) lista negra explícita de variables target-derived antes de cruzar — evita el desastre v2/v3 de filtrar `precio_mediano_barrio` por división, (d) canary evaluado multi-seed o multi-fold para garantía estadística sobre miles de candidatas (el original single-shot puede dejar pasar features que ganan por azar), (e) manejo explícito de Inf por división por 0 (en R el script avisa con `NaN → 0` que es "decisión polémica"; en Python: `replace([Inf,-Inf], NaN)` + dejar que RF maneje), (f) recalibrar `min_data_in_leaf` y demás HP del modelo interno para nuestras ~80 K filas filtradas (el original está tuneado para ~150 K filas bancarias). Sinergia con resto del backlog: alimentar Creacionismo con embeddings densos (cruces entre dims latentes y features estructuradas que no se enumerarían a mano) o con features rolling por barrio (cruces tipo `precio_actual / avg6m_barrio`). |
+| **Features históricas rolling por barrio / publisher con máscara causal**: para cada `(barrio, yyyymm)` precalcular `precio_m2_mediano`, `count_publicaciones`, `precio_min/max/avg`, `tendencia_6m` (pendiente OLS de los últimos 6 meses), `ratio_actual_vs_avg6m`, `ratio_actual_vs_max6m`. Para cada listing, attachear esas features evaluadas en su `publication_date`. Análogo para `(publisher_id, yyyymm)` (captura "inmobiliaria de lujo" vs "mass market"). Inspirado en `z1501_FE_historia.r` de la materia hermana de Economía y Finanzas (lags, tendencias, min/max/avg sobre series temporales de clientes bancarios), reformulado al cambiar la entidad ("propiedad" → "barrio" / "publisher") porque en nuestro problema cada fila es una publicación única, no un activo seguido en el tiempo. | **Entrega Final** | El port literal del script R (lag por propiedad) NO aplica: ~86 % de las propiedades aparecen una sola vez, y el ~10-14 % que se repite son los "price tests" del `v10_dedup` que justamente queremos colapsar — usar el lag entre ellas como feature contamina con leakage estilo v2. La reformulación (entidad = barrio / publisher) sí tiene la estructura `(entidad, período)` densa que necesita el algoritmo. **Trampa crítica (que el R no advierte porque churn binario no la sufre): es target encoding temporal y requiere máscara causal**. Para una fila publicada en mar-2024, las rolling stats deben usar SOLO datos `< mar-2024`; si incluyo el propio mes infla CV5 y rompe Kaggle (clásico de v2 / v3 con `precio_mediano_barrio`). Para test (2026) sí puedo usar TODO el train porque está todo en el pasado. Por la complejidad del diseño causal correcto + dependencia de barrios limpios (`v6_clean_barrio` debe estar resuelto), entra en EF. | Pendiente. Implementación segura: para cada listing en mes M usar expanding window sobre `train.publication_date < M`, con barrios con < N publicaciones en la ventana fallback al promedio CABA del período. Es el **complemento natural de `drift_correct.py`**: drift_correct neutraliza el shift macroeconómico del precio absoluto, las features rolling le dan al modelo la señal del trend local barrio-a-barrio que sí queremos preservar. Comparar contra baseline: ¿la información temporal del barrio aporta sobre lo que ya capturan los centroides geográficos (`v7_centroides`)? |
+| **Geocoding enriquecido vía OSM Overpass + datos abiertos GCBA/INDEC**: para cada `(lat, lon)`, queries a OSM Overpass para sacar features de entorno (distancia al subte / colectivo más cercano, cantidad de escuelas / hospitales / comercios / parques en radio de 500 m), + match por radio censal contra datasets abiertos del GCBA / INDEC (nivel socioeconómico, densidad poblacional, m² verde por habitante, índice de inseguridad). | **Entrega 4** | Requiere APIs externas + datasets externos. E4 está literalmente diseñada para esto ("APIs y web scraping + datos geográficos"). Ataca directamente el problema "Palermo Soho ≠ Palermo Chico" del profe **sin necesidad de embeddings ni LLMs**, con datos auditables y reproducibles. Probablemente el mejor ROI (señal nueva / esfuerzo) de toda la lista para E4. | Pendiente. Una sola corrida cacheada por `(lat, lon)` única → ~50 K queries a OSM Overpass throttled = 1-2 días en background, después se reusa para siempre. Persistir a parquet. Las features OSM son inmediatamente interpretables → fáciles de defender en el informe. |
+| **Visión por satélite / Street View con VLM pre-entrenado (CLIP / DINOv2 / SigLIP)**: con `(lat, lon)`, descargar tile de Mapillary o Sentinel-2 (gratis, públicos), extraer embedding visual del entorno con un VLM pre-entrenado, comprimir a ~10 dims con PCA, agregar como features al RF. Captura "edificios viejos", "manzana arbolada", "zona comercial", "skyline alto" — información que no está en ningún campo estructurado ni en `description`. | **Entrega Final** | Modelos externos pre-entrenados + datos visuales externos. Por costo computacional + complejidad de pipeline + tamaño del dataset (130 K imágenes a descargar y procesar) sólo entra en la última entrega. | Pendiente. Empezar con muestreo agresivo (1 imagen por barrio limpio, propagar por similaridad geográfica) antes de escalar. Caché obligatorio. Auditar visualmente N imágenes random para confirmar que la API devuelve algo útil para CABA (Mapillary tiene cobertura desigual). |
+| LLM (Claude / GPT) razonando aviso por aviso para estimar precio y usar la estimación como feature | **Entrega Final** | Doble problema: (a) "sin datos / modelos externos" + costo de API sobre 130 K filas (impráctico salvo subsampling); (b) **riesgo serio de memorización**: Claude / GPT entrenados con CommonCrawl post-2024 muy probablemente vieron Properati / Zonaprop / Argenprop, y plausiblemente memorizaron precios listados de los avisos exactos de este dataset. La "prior" puede no ser razonamiento del LLM sino recall del precio real → feature semi-leak indistinguible de leakage real. | Mantener como **exploración honesta** en la entrega final, NO como feature de producción. Si se prueba, reportar con transparencia: "intenté esto, mejora X, riesgo de memorización Y, lo descarto/lo dejo con esta justificación". El profe va a valorar más la honestidad analítica que el RMSE final. |
+
+Regla de uso del backlog: cada vez que aparezca una idea que pinta bien
+pero no se puede usar ahora, se agrega una fila acá con (1) la entrega
+en la que sí encajaría, (2) por qué no encaja antes y (3) el estado /
+versión "downgrade" defendible en la entrega actual si la hay. Cuando
+arranca la entrega objetivo, se revisa el backlog antes de planificar.
 
 ### Restricción central
 
@@ -107,10 +145,18 @@ correspondiente.
 - Muchos faltantes en `lat`, `lon`, `publication_date`, `publisher_id`, `description`, `address` y en la propia `price` (hay 308 197 filas sin price en train).
 - En train hay duplicados de la misma publicación: ~13 676 descripciones repetidas y un buen número de coincidencias **train ↔ test** por `description` (~925 filas de test cubiertas) o por `address` (~6 789, pero más ruidoso).
 
-## Referencia de scores
+## Referencia de scores y benchmarks (Kaggle, RMSE)
 
-- **Target nice-to-have**: RMSE < 62 821.209 (mejor score actual en el leaderboard de la competencia, al 2026-04-20).
-- No es un objetivo rígido; no forzar decisiones técnicas para perseguirlo si comprometen la claridad o la justificación del TP.
+Son **tres referencias distintas** — conviene no mezclarlas al evaluar avance:
+
+| Rol | Valor (referencia) | Uso |
+|---|---|---|
+| **Benchmark público (leaderboard)** | **62 821.209** | Mejor RMSE **público** en la competencia a **2026-04-20**. Techo orientativo del *dataset* y del estado del arte visible en Kaggle; **no** es consigna de la cátedra ni criterio de aprobación. Actualizar el número si el tope del leaderboard cambia. |
+| **Campeón propio** | **93 151** (v4, Entrega 2) | Baseline de trabajo e informe; ver tabla *Resultados registrados* abajo. |
+| **Umbral de aprobación por entrega** | Robot de la entrega | Hay que **ganarle al robot** en Kaggle; el RMSE exacto del robot **E3** está **pendiente** hasta publicación (ver *Robots de la cátedra*). |
+
+- No es obligatorio alcanzar el benchmark público; no forzar decisiones
+  técnicas para perseguirlo si comprometen la claridad o la justificación del TP.
 
 ### Resultados registrados (entrega_2)
 
@@ -437,6 +483,33 @@ restricciones del TP (clases ≤ 5, modelo fijo, sin externos):
   es ~30 % del test; ganar 500 puntos contra esa muestra puede ser
   ruido. La validación local (CV5 multi-seed + holdout temporal) es la
   fuente de verdad, no el LB público.
+- **Si transformás el target, aplicá la inversa antes de subir a
+  Kaggle** (regla del profe, generalizable). Las transformaciones a
+  **features** (ej. `np.log(m2)`, `np.sqrt(n_features)`) NO necesitan
+  inversa — el modelo entrena directamente sobre la feature
+  transformada y predice en la escala original del target. Las
+  transformaciones al **target** (ej. `np.log(price)`) sí: hay que
+  aplicar la inversa antes de armar el CSV. Tabla rápida de inversas:
+
+  | Transformación | Inversa |
+  |---|---|
+  | `np.log(y)` | `np.exp(y_pred)` |
+  | `np.log1p(y)` | `np.expm1(y_pred)` |
+  | `np.log10(y)` | `10 ** y_pred` |
+  | `np.sqrt(y)` | `y_pred ** 2` |
+  | `1 / np.sqrt(y)` | `1 / (y_pred ** 2)` |
+
+  Olvidarse de la inversa manda al CSV números entre 9-15 (los logs
+  de precios entre 50 K y 3 M) y el RMSE se va al carajo —
+  diagnóstico inmediato: la primera submission después de aplicar
+  un target transform tiene RMSE > 100 000 sin sentido. Detalle
+  estadístico que vale anotar: cuando entrenás en log y aplicás
+  `exp` para volver, estás minimizando RMSE en escala log
+  (= MAPE-ish), no RMSE en escala original. Predicis la **mediana**
+  del precio, no la media; bajo asunción de normalidad de los
+  residuos en log con varianza σ², la corrección por sesgo es
+  `exp(y_pred + σ²/2)`. Esto es opcional; primero validar si la
+  versión simple (sin corrección) ya mejora vs sin transform.
 - **Procesar train y test en simultáneo, NUNCA mergearlos antes de
   procesar** (regla del profe, generalizable). Dos formas de hacerlo
   bien — adoptamos la segunda:
@@ -482,6 +555,75 @@ restricciones del TP (clases ≤ 5, modelo fijo, sin externos):
   train. La detección multivariada se hace con un algoritmo apropiado
   (IsolationForest, LOF, Mahalanobis), no extendiendo el filtro
   univariado.
+- **Experimentos largos (>30 min) corren con checkpointing resumible.**
+  HP sweeps, CV5 multi-seed sobre grids grandes, ablations exhaustivas
+  — cualquier corrida donde perder el progreso a mitad de camino
+  duela. Patrón de referencia: `entregas/_resumable.py::ResumableRunner`.
+  Cada combinación atómica (ej. `(n_estimators, max_depth, fold,
+  seed)`) se persiste a un JSONL append-only apenas termina; si el
+  proceso muere (Cursor cae, kill -9, internet, lo que sea), la
+  próxima corrida lee el JSONL, descarta lo hecho y resume desde la
+  combinación pendiente siguiente. Reglas:
+  - **Granularidad correcta**: el "combo" debe ser la unidad más
+    chica que valga la pena no repetir. Para HP sweep + CV es
+    `(hiperparámetros + fold + seed)`, no `(hiperparámetros)`
+    completo. Si un fold tarda 5 min y se cae a la hora 4, querés
+    perder 5 min, no 4 h.
+  - **Key determinística**: `key_fn(combo)` debe dar siempre el mismo
+    string para el mismo combo. Si la key cambia entre corridas,
+    `pending()` devuelve todo de nuevo y se repite trabajo.
+  - **Fallos también se persisten**: una excepción en `run_fn` queda
+    grabada con `error: "..."` y NO se reintenta. Si querés
+    reintentar, borrá esa línea del JSONL.
+  - **El JSONL es la fuente de verdad**: el agregado final
+    (`results_df()`, gráficos, decisión de campeón) se hace LEYENDO
+    el JSONL, no del estado en RAM de la corrida actual. Así una
+    corrida hecha en partes da exactamente el mismo resultado que
+    una corrida monolítica.
+  - **No usar para CV5 multi-seed que ya cabe en memoria** (ej. v6
+    de E2 con 3 seeds × 5 folds en 4 min). Sólo cuando el costo de
+    repetir > costo de orquestar.
+- **Redondear las predicciones a múltiplos de 1 000 USD antes de
+  generar la submission** (regla del profe, generalizable a toda
+  entrega). El RF predice continuo (ej. `124 567.89`), pero el
+  mercado de propiedades en CABA cotiza en valores redondos.
+  Validación empírica sobre los 790 K precios del train
+  post-filtros de E1 (USD, venta, 5 K-3 M):
+
+  | Granularidad | % de precios reales que la cumplen |
+  |---|---|
+  | sin centavos (entero) | **100.00 %** |
+  | múltiplos de 10 | 96.13 % |
+  | múltiplos de 100 | 94.56 % |
+  | **múltiplos de 1 000** | **85.63 %** ← sweet spot |
+  | múltiplos de 5 000 | 58.59 % |
+  | múltiplos de 10 000 | 37.40 % |
+  | múltiplos de 50 000 | 10.47 % |
+
+  Granularidad recomendada: **1 000**. Cubre el 85.6 % del
+  comportamiento natural sin introducir sesgo (las granularidades
+  más gruesas — 5 K, 10 K — bajan demasiado la cobertura). Si el
+  precio real es múltiplo de 1 000 y la predicción es continua, el
+  ruido de redondeo esperado es uniforme en `[-500, +500]` USD →
+  `σ ≈ 289` USD. Marginal vs el RMSE actual (~93 K, mejora
+  esperada ~0.3 %), pero free lunch: cero costo, cero riesgo de
+  empeorar. Implementación al final del pipeline, justo antes del
+  `to_csv`:
+
+  ```python
+  df_ap["price"] = df_ap["price"].clip(lower=1)        # ya estaba
+  df_ap["price"] = (df_ap["price"] / 1_000).round() * 1_000  # NUEVO
+  df_ap["price"] = df_ap["price"].clip(lower=1_000)    # piso post-redondeo
+  df_ap["price"].to_csv(csv_path)
+  ```
+
+  Aplica **después** del Hot Deck override (los precios del Hot Deck
+  ya vienen del train, ya están redondeados, el redondeo es
+  idempotente sobre ellos). Aplica **después** de la inversa del
+  target transform si se usó `np.log(price)` u otro
+  (`np.exp(y_pred_log)` da continuo, redondeás eso). El piso a
+  1 000 USD post-redondeo evita predicciones de `0` USD si el modelo
+  predice valores ridículamente bajos.
 
 ### Cómo debe estar redactado
 
