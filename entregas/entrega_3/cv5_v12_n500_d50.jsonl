@@ -1,0 +1,7 @@
+{"key": "s0_f0", "combo": {"seed": 0, "fold": 0}, "result": {"rmse": 105642.4202704393}, "fit_time_s": 532.8, "ts": "2026-05-02T16:40:52"}
+{"key": "s0_f1", "combo": {"seed": 0, "fold": 1}, "result": {"rmse": 107765.36735636205}, "fit_time_s": 517.1, "ts": "2026-05-02T16:49:29"}
+{"key": "s0_f2", "combo": {"seed": 0, "fold": 2}, "result": {"rmse": 110309.83308395391}, "fit_time_s": 509.1, "ts": "2026-05-02T16:57:58"}
+{"key": "s0_f3", "combo": {"seed": 0, "fold": 3}, "result": {"rmse": 106144.46079789102}, "fit_time_s": 535.7, "ts": "2026-05-02T17:06:54"}
+{"key": "s0_f4", "combo": {"seed": 0, "fold": 4}, "result": {"rmse": 104339.30598427948}, "fit_time_s": 501.9, "ts": "2026-05-02T17:15:16"}
+{"key": "s1_f0", "combo": {"seed": 1, "fold": 0}, "result": {"rmse": 103714.15578604378}, "fit_time_s": 491.0, "ts": "2026-05-02T17:23:27"}
+{"key": "s1_f1", "combo": {"seed": 1, "fold": 1}, "result": {"rmse": 109317.2041207231}, "fit_time_s": 557.5, "ts": "2026-05-02T17:32:44"}

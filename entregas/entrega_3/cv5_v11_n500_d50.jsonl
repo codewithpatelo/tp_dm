@@ -1,0 +1,15 @@
+{"key": "s0_f0", "combo": {"seed": 0, "fold": 0}, "result": {"rmse": 105737.55747955512}, "fit_time_s": 572.8, "ts": "2026-05-02T12:14:52"}
+{"key": "s0_f1", "combo": {"seed": 0, "fold": 1}, "result": {"rmse": 107802.67323463564}, "fit_time_s": 834.6, "ts": "2026-05-02T12:28:47"}
+{"key": "s0_f2", "combo": {"seed": 0, "fold": 2}, "result": {"rmse": 110367.43965680979}, "fit_time_s": 967.3, "ts": "2026-05-02T12:44:54"}
+{"key": "s0_f3", "combo": {"seed": 0, "fold": 3}, "result": {"rmse": 106117.27410648816}, "fit_time_s": 950.8, "ts": "2026-05-02T13:00:45"}
+{"key": "s0_f4", "combo": {"seed": 0, "fold": 4}, "result": {"rmse": 104223.09530872208}, "fit_time_s": 933.1, "ts": "2026-05-02T13:16:18"}
+{"key": "s1_f0", "combo": {"seed": 1, "fold": 0}, "result": {"rmse": 103854.34750214127}, "fit_time_s": 896.2, "ts": "2026-05-02T13:31:14"}
+{"key": "s1_f1", "combo": {"seed": 1, "fold": 1}, "result": {"rmse": 109215.31699991021}, "fit_time_s": 873.1, "ts": "2026-05-02T13:45:47"}
+{"key": "s1_f2", "combo": {"seed": 1, "fold": 2}, "result": {"rmse": 108559.0060581491}, "fit_time_s": 908.9, "ts": "2026-05-02T14:00:56"}
+{"key": "s1_f3", "combo": {"seed": 1, "fold": 3}, "result": {"rmse": 109135.41567335882}, "fit_time_s": 978.3, "ts": "2026-05-02T14:17:15"}
+{"key": "s1_f4", "combo": {"seed": 1, "fold": 4}, "result": {"rmse": 103630.93529150187}, "fit_time_s": 1006.2, "ts": "2026-05-02T14:34:01"}
+{"key": "s2_f0", "combo": {"seed": 2, "fold": 0}, "result": {"rmse": 106823.52656491725}, "fit_time_s": 938.3, "ts": "2026-05-02T14:49:39"}
+{"key": "s2_f1", "combo": {"seed": 2, "fold": 1}, "result": {"rmse": 112501.19033380377}, "fit_time_s": 943.9, "ts": "2026-05-02T15:05:23"}
+{"key": "s2_f2", "combo": {"seed": 2, "fold": 2}, "result": {"rmse": 104264.36367847939}, "fit_time_s": 560.1, "ts": "2026-05-02T15:14:43"}
+{"key": "s2_f3", "combo": {"seed": 2, "fold": 3}, "result": {"rmse": 107965.67395964309}, "fit_time_s": 504.8, "ts": "2026-05-02T15:23:08"}
+{"key": "s2_f4", "combo": {"seed": 2, "fold": 4}, "result": {"rmse": 102401.79262970315}, "fit_time_s": 528.9, "ts": "2026-05-02T15:31:57"}

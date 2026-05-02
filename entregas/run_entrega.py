@@ -62,7 +62,7 @@ def run_notebook_only(entrega: str, nombre: str, desc: str) -> int:
     print("[run_entrega] ejecutando notebook (con CV5 puede tardar ~20-30 min)...", flush=True)
 
     nb = nbformat.read(NOTEBOOK, as_version=4)
-    ep = ExecutePreprocessor(timeout=7200, kernel_name="python3")
+    ep = ExecutePreprocessor(timeout=21600, kernel_name="python3")
     try:
         ep.preprocess(nb, {"metadata": {"path": str(ROOT)}})
     except CellExecutionError as e:

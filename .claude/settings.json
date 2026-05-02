@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(python entregas/run_entrega.py --entrega entrega_3 --nombre v9 --desc \"TF-IDF+SVD escalado: 50 componentes + vocab 10k \\(vs 20 comp + 5k en v8\\). Escala lo que funciono.\")",
+      "Bash(wmic process *)",
+      "PowerShell(Get-Process python)"
+    ]
+  }
+}

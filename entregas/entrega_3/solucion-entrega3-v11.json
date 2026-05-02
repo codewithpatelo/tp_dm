@@ -1,0 +1,320 @@
+{
+  "entrega": "entrega_3",
+  "nombre": "v11",
+  "descripcion": "Scores temÃ¡ticos de amenities (Clase 07) + SelectKBest(mutual_info, k=10) sobre amenities (Clase 08) + TF-IDF+SVD v8. USE_LOG_TARGET=False. Base: v8.",
+  "timestamp": "2026-05-02T11:48:10",
+  "hostname": "WIN-CMX7BS3",
+  "python": "3.13.7",
+  "in_colab": false,
+  "params": {
+    "filtros": {
+      "caba_l1_estricto": [
+        "Capital Federal",
+        "Ciudad AutÃ³noma de Buenos Aires"
+      ],
+      "caba_l1_ampliado_via_loc2_loc3": true,
+      "property_type": [
+        "casa",
+        "casas",
+        "cochera",
+        "departamento",
+        "departamentos",
+        "ph"
+      ],
+      "operation_type": "venta",
+      "currency_type": "dolares",
+      "price_min": 5000,
+      "price_max": 3000000
+    },
+    "outlier_caps": {
+      "m2": [
+        10,
+        1500
+      ],
+      "n_dormitorios": [
+        0,
+        15
+      ],
+      "n_banos": [
+        0,
+        15
+      ]
+    },
+    "isolation_forest": {
+      "contamination": 0.01,
+      "cols": [
+        "price",
+        "m2",
+        "n_dormitorios",
+        "n_banos"
+      ],
+      "scaled": "StandardScaler"
+    },
+    "imputacion": {
+      "numericas": {
+        "m2": "median (global, fit on train)",
+        "lat": "median (global, fit on train)",
+        "lon": "median (global, fit on train)",
+        "n_dormitorios": "median (global, fit on train)",
+        "n_banos": "median (global, fit on train)",
+        "len_descripcion": "median (global, fit on train)",
+        "n_features": "median (global, fit on train)",
+        "rooms": "median (global, fit on train)"
+      },
+      "categoricas": {
+        "property_type": "most_frequent (fit on train)",
+        "barrio": "most_frequent (fit on train)"
+      },
+      "marcador_m2_was_na": true
+    },
+    "fe_version": "v11-parseo-dual+barrio-cleanup+scores-kbest+tfidf-svd",
+    "fe_parseo_dual": {
+      "descripcion": "fallback description cuando features da NaN en m2/dormitorios/banos",
+      "nueva_feature": "rooms (ambientes desde description, patron X amb)",
+      "rescatados_train": {
+        "m2": 10844,
+        "n_dormitorios": 3168,
+        "n_banos": 2293
+      },
+      "rescatados_test": {
+        "m2": 29,
+        "n_dormitorios": 80,
+        "n_banos": 55
+      }
+    },
+    "fe_barrio_cleanup": {
+      "descripcion": "cascade HotDeck(desc_norm) -> KNN(lat/lon, k=5) -> desconocido; escasos<=10 -> barrio_raro",
+      "basura_labels": [
+        "buenos aires",
+        "capital federal",
+        "ciudad autonoma de buenos aires",
+        "ciudad de buenos aires"
+      ],
+      "knn_n_train": 93133,
+      "hd_dict_size": 83532,
+      "n_barrios_escasos": 13
+    },
+    "fe_distancias": {
+      "descripcion": "m2_per_room/bano + distancias eucl. a top-10 barrios + BallTree density k=10",
+      "n_centros": 10,
+      "centros": [
+        "Palermo",
+        "Belgrano",
+        "Caballito",
+        "Recoleta",
+        "Centro",
+        "Villa Urquiza",
+        "NuÃ±ez",
+        "Almagro",
+        "Villa Crespo",
+        "Flores"
+      ],
+      "dist_cols": [
+        "dist_palermo",
+        "dist_belgrano",
+        "dist_caballito",
+        "dist_recoleta",
+        "dist_centro",
+        "dist_villa_urquiza",
+        "dist_nunez",
+        "dist_almagro",
+        "dist_villa_crespo",
+        "dist_flores"
+      ],
+      "density_col": "density_k10"
+    },
+    "fe_amenity_scores": {
+      "descripcion": "5 scores temÃ¡ticos sumando binarias de amenities (Clase 07 FE)",
+      "scores": {
+        "score_lujo": [
+          "f_pileta",
+          "f_gimnasio",
+          "f_parrilla",
+          "f_jardin"
+        ],
+        "score_servicios": [
+          "f_aire_acondicionado",
+          "f_calefaccion",
+          "f_gas_natural",
+          "f_internet"
+        ],
+        "score_estacionamiento": [
+          "f_cochera",
+          "f_garage"
+        ],
+        "score_espacios_extra": [
+          "f_balcon",
+          "f_bodega",
+          "f_cuarto_de_servicio"
+        ],
+        "score_seguridad": [
+          "f_seguridad",
+          "f_alarma"
+        ]
+      }
+    },
+    "selectkbest_amenities": {
+      "k": 10,
+      "score_func": "mutual_info_regression",
+      "n_original": 16,
+      "conservadas": [
+        "f_aire_acondicionado",
+        "f_balcon",
+        "f_cochera",
+        "f_cuarto_de_servicio",
+        "f_garage",
+        "f_gimnasio",
+        "f_jardin",
+        "f_parrilla",
+        "f_pileta",
+        "f_seguridad"
+      ],
+      "eliminadas": [
+        "f_alarma",
+        "f_bodega",
+        "f_calefaccion",
+        "f_cocina_equipada",
+        "f_gas_natural",
+        "f_internet"
+      ]
+    },
+    "dim_reduction_version": "v11-selectkbest-k10-amenities+tfidf-svd-20comp-5kvocab",
+    "dim_reduction_tfidf_svd": {
+      "tecnica": "TF-IDF + TruncatedSVD",
+      "n_svd_components": 20,
+      "tfidf_max_features": 5000,
+      "varianza_explicada": 0.2564
+    },
+    "hotdeck": {
+      "key": "description_normalizada",
+      "normalizacion": "lower + sin_acentos + sin_puntuacion + colapsar_espacios + min_20_chars",
+      "agg": "median",
+      "fuente": "train completo (venta + USD)"
+    },
+    "target_encoding_barrio": "DESACTIVADO (leakage E2-v2/v3)",
+    "modelo": {
+      "tipo": "RandomForestRegressor",
+      "n_estimators": 500,
+      "max_depth": "50",
+      "random_state": 42,
+      "split": "train_test_split(test_size=0.2, random_state=42)"
+    },
+    "validacion_primaria": "KFold(5) x 3 seeds"
+  },
+  "data": {
+    "train_post_filtro": [
+      123102,
+      18
+    ],
+    "outliers_if_eliminados": 760,
+    "train_post_outliers": [
+      122342,
+      41
+    ],
+    "hotdeck_overrides": 1058,
+    "hotdeck_coverage_pct": 7.85,
+    "test_predicciones": 13471,
+    "hotdeck_overrides_aplicados": 1058
+  },
+  "metricas": {
+    "rmse_train": 39488.4032032941,
+    "rmse_holdout": 110806.44749520259,
+    "n_features": 59,
+    "features": [
+      "lat",
+      "lon",
+      "n_dormitorios",
+      "n_banos",
+      "m2",
+      "f_balcon",
+      "f_garage",
+      "f_cochera",
+      "f_pileta",
+      "f_parrilla",
+      "f_aire_acondicionado",
+      "f_seguridad",
+      "f_gimnasio",
+      "f_jardin",
+      "f_cuarto_de_servicio",
+      "rooms",
+      "len_descripcion",
+      "n_features",
+      "m2_was_na",
+      "m2_per_room",
+      "m2_per_bano",
+      "dist_palermo",
+      "dist_belgrano",
+      "dist_caballito",
+      "dist_recoleta",
+      "dist_centro",
+      "dist_villa_urquiza",
+      "dist_nunez",
+      "dist_almagro",
+      "dist_villa_crespo",
+      "dist_flores",
+      "density_k10",
+      "score_lujo",
+      "score_servicios",
+      "score_estacionamiento",
+      "score_espacios_extra",
+      "score_seguridad",
+      "svd_desc_0",
+      "svd_desc_1",
+      "svd_desc_2",
+      "svd_desc_3",
+      "svd_desc_4",
+      "svd_desc_5",
+      "svd_desc_6",
+      "svd_desc_7",
+      "svd_desc_8",
+      "svd_desc_9",
+      "svd_desc_10",
+      "svd_desc_11",
+      "svd_desc_12",
+      "svd_desc_13",
+      "svd_desc_14",
+      "svd_desc_15",
+      "svd_desc_16",
+      "svd_desc_17",
+      "svd_desc_18",
+      "svd_desc_19",
+      "barrio_id",
+      "property_type_id"
+    ],
+    "rmse_cv5_folds": [
+      105737.55747955512,
+      107802.67323463564,
+      110367.43965680979,
+      106117.27410648816,
+      104223.09530872208,
+      103854.34750214127,
+      109215.31699991021,
+      108559.0060581491,
+      109135.41567335882,
+      103630.93529150187,
+      106823.52656491725,
+      112501.19033380377,
+      104264.36367847939,
+      107965.67395964309,
+      102401.79262970315
+    ],
+    "rmse_cv5_mean": 106839.97389852125,
+    "rmse_cv5_std": 2765.0414337885613,
+    "rmse_holdout_temporal": 101041.35352816523,
+    "pred_p05": 77000.0,
+    "pred_mediana": 162000.0,
+    "pred_p95": 565000.0
+  },
+  "kaggle": {
+    "rmse": 90613.645,
+    "submitted_at": null,
+    "leaderboard_position": null,
+    "recorded_at": "2026-05-02T16:01:17"
+  },
+  "output": {
+    "csv": "entregas/entrega_3/solucion-entrega3-v11.csv",
+    "csv_md5": "684980b1ca9b056cf1e6373e645e2786",
+    "json": "entregas/entrega_3/solucion-entrega3-v11.json",
+    "kaggle_submit_message": "entrega_3/v11: Scores temÃ¡ticos de amenities (Clase 07) + SelectKBest(mutual_info, k=10) sobre amenities (Clase 08) + TF-IDF+SVD v8. USE_LOG_TARGET=False. Base: v8."
+  }
+}

@@ -69,6 +69,8 @@ escrita.
 | **Geocoding enriquecido vía OSM Overpass + datos abiertos GCBA/INDEC**: para cada `(lat, lon)`, queries a OSM Overpass para sacar features de entorno (distancia al subte / colectivo más cercano, cantidad de escuelas / hospitales / comercios / parques en radio de 500 m), + match por radio censal contra datasets abiertos del GCBA / INDEC (nivel socioeconómico, densidad poblacional, m² verde por habitante, índice de inseguridad). | **Entrega 4** | Requiere APIs externas + datasets externos. E4 está literalmente diseñada para esto ("APIs y web scraping + datos geográficos"). Ataca directamente el problema "Palermo Soho ≠ Palermo Chico" del profe **sin necesidad de embeddings ni LLMs**, con datos auditables y reproducibles. Probablemente el mejor ROI (señal nueva / esfuerzo) de toda la lista para E4. | Pendiente. Una sola corrida cacheada por `(lat, lon)` única → ~50 K queries a OSM Overpass throttled = 1-2 días en background, después se reusa para siempre. Persistir a parquet. Las features OSM son inmediatamente interpretables → fáciles de defender en el informe. |
 | **Visión por satélite / Street View con VLM pre-entrenado (CLIP / DINOv2 / SigLIP)**: con `(lat, lon)`, descargar tile de Mapillary o Sentinel-2 (gratis, públicos), extraer embedding visual del entorno con un VLM pre-entrenado, comprimir a ~10 dims con PCA, agregar como features al RF. Captura "edificios viejos", "manzana arbolada", "zona comercial", "skyline alto" — información que no está en ningún campo estructurado ni en `description`. | **Entrega Final** | Modelos externos pre-entrenados + datos visuales externos. Por costo computacional + complejidad de pipeline + tamaño del dataset (130 K imágenes a descargar y procesar) sólo entra en la última entrega. | Pendiente. Empezar con muestreo agresivo (1 imagen por barrio limpio, propagar por similaridad geográfica) antes de escalar. Caché obligatorio. Auditar visualmente N imágenes random para confirmar que la API devuelve algo útil para CABA (Mapillary tiene cobertura desigual). |
 | LLM (Claude / GPT) razonando aviso por aviso para estimar precio y usar la estimación como feature | **Entrega Final** | Doble problema: (a) "sin datos / modelos externos" + costo de API sobre 130 K filas (impráctico salvo subsampling); (b) **riesgo serio de memorización**: Claude / GPT entrenados con CommonCrawl post-2024 muy probablemente vieron Properati / Zonaprop / Argenprop, y plausiblemente memorizaron precios listados de los avisos exactos de este dataset. La "prior" puede no ser razonamiento del LLM sino recall del precio real → feature semi-leak indistinguible de leakage real. | Mantener como **exploración honesta** en la entrega final, NO como feature de producción. Si se prueba, reportar con transparencia: "intenté esto, mejora X, riesgo de memorización Y, lo descarto/lo dejo con esta justificación". El profe va a valorar más la honestidad analítica que el RMSE final. |
+| **Gradient Boosting (LightGBM / XGBoost / CatBoost) como modelo principal**: reemplazar `RandomForestRegressor` por un modelo de boosting. En tabular data estructurada, GBM supera sistemáticamente a RF en 10-25% de RMSE por su menor bias (aprende residuos iterativamente en vez de promediar árboles independientes). Con las mismas features de E3-v11, la caída esperada es 10-20 K puntos de RMSE — suficiente para competir con el primer lugar. | **Entrega Final** (EF dice "libre") | E3 y E4 restringen explícitamente el modelo a `RandomForestRegressor`. EF levanta esa restricción. **Motivación cuantitativa**: el nuevo líder del LB público pasó de ~62 K (mejor anterior) a 46 K de golpe — ese salto de ~16 K es consistente con cambiar de RF a GBM manteniendo las mismas features; RF tiene un techo inherente por el efecto de promediado de árboles independientes que GBM no tiene. HP críticos: `learning_rate` (0.01-0.05), `num_leaves` / `max_depth`, `min_child_samples`, `n_estimators` (500-2000), `colsample_bytree`, `subsample`. Para LightGBM con CatBoost hay que tener cuidado con el encoding de `barrio` (CatBoost tiene soporte nativo; LightGBM requiere `LabelEncoder` o `category` dtype). | Pendiente. Implementación: clonar el pipeline de EF, reemplazar `RandomForestRegressor` por `lgb.LGBMRegressor` o `xgb.XGBRegressor`, hacer sweep de HP con `optuna` o `ResumableRunner` (grilla reducida: 3×3×3 = 27 combos × CV5 = 135 fits ≈ 20 min con LightGBM). Comparar contra RF-EF con mismas features para cuantificar el delta puro del modelo. |
+| **Hot Deck masivo por matching multi-criterio**: extender el Hot Deck actual (cobertura 7.8%, solo `description_norm`) a un pipeline de matching en cascada que combine múltiples claves para cubrir 30-60% del test con precios exactos del train. Cascada propuesta: (1) `description_norm` exacta (actual); (2) `(publisher_id, address_norm)` — misma inmobiliaria + misma dirección normalizada; (3) `(lat_round2, lon_round2, rooms, property_type)` — misma cuadra + misma tipología; (4) `(address_norm, property_type, rooms)` — sin lat/lon; (5) KNN semántico sobre embeddings TF-IDF de `description` con umbral de cosine similarity > 0.95. Cada nivel cubre casos que el anterior no alcanza. | **Entrega 4** (ya contamos con datos propios sin necesitar APIs; simplemente hay que normalizar `address`) | El Hot Deck actual usa solo match exacto de `description` normalizada, que cubre ~8% del test porque muchas propiedades repiten el aviso textual. Un matching multi-criterio aprovecha los patrones de re-publicación del mercado inmobiliario argentino (misma propiedad se lista múltiples veces con distintas variantes del texto). **Potencial de impacto**: si se llega al 40-50% de cobertura con precios exactos, el RMSE podría bajar 20-30 K puntos adicionales — este mecanismo es probablemente la hipótesis más fuerte para explicar el salto del líder del LB a 46 K. Trampa a evitar: no usar `price` del aviso duplicado del train como feature del modelo (eso es leakage clásico); el Hot Deck se aplica solo al test, fuera del CV5 (misma lógica que el Hot Deck actual). | Pendiente. Paso 1: auditar cuántas filas del test tienen match posible por cada criterio de la cascada (sin correr el modelo, solo conteo). Paso 2: implementar `address_norm` (lower + sin acentos + abreviaturas → `av`/`avenida`, `pte`/`presidente`, etc.). Paso 3: implementar los niveles 2-4. Paso 4: nivel 5 (KNN sobre TF-IDF, threshold tuneado con un subset del train con etiqueta conocida para verificar precision del match). Medir cobertura total y distribución de niveles antes de integrar al pipeline. |
 
 Regla de uso del backlog: cada vez que aparezca una idea que pinta bien
 pero no se puede usar ahora, se agrega una fila acá con (1) la entrega
@@ -78,7 +80,7 @@ arranca la entrega objetivo, se revisa el backlog antes de planificar.
 
 ### Restricción central
 
-> Cada entrega **solo puede usar técnicas vistas hasta la clase previa a esa entrega**. Nada de XGBoost, nada de librerías externas no vistas en clase, nada de datos externos.
+> Cada entrega **solo puede usar técnicas vistas hasta la clase previa a esa entrega**. Nada de XGBoost, nada de librerías externas no vistas en clase, nada de datos externos (a menos que estemos en entrega final).
 
 Para aprobar una entrega hay que superar el RMSE de los docentes en el leaderboard correspondiente.
 
@@ -152,7 +154,7 @@ Son **tres referencias distintas** — conviene no mezclarlas al evaluar avance:
 | Rol | Valor (referencia) | Uso |
 |---|---|---|
 | **Benchmark público (leaderboard)** | **62 821.209** | Mejor RMSE **público** en la competencia a **2026-04-20**. Techo orientativo del *dataset* y del estado del arte visible en Kaggle; **no** es consigna de la cátedra ni criterio de aprobación. Actualizar el número si el tope del leaderboard cambia. |
-| **Campeón propio** | **91 399** (v2, Entrega 3) | Baseline de trabajo e informe; ver tabla *Resultados registrados* abajo. |
+| **Campeón vigente** | **106 840 CV5** (v11, Entrega 3) | Mejor métricas locales (CV5 + holdout temporal). Su CSV es la entrega vigente. El campeón lo definen las métricas locales, no el score Kaggle público. Ver política en *Auto-submit a Kaggle y definición de campeón*. |
 | **Umbral de aprobación por entrega** | Robot de la entrega | Hay que **ganarle al robot** en Kaggle; el RMSE exacto del robot **E3** está **pendiente** hasta publicación (ver *Robots de la cátedra*). |
 
 - No es obligatorio alcanzar el benchmark público; no forzar decisiones
@@ -175,10 +177,16 @@ Son **tres referencias distintas** — conviene no mezclarlas al evaluar avance:
 | versión | RMSE CV5 (mean ± std) | RMSE holdout temporal | RMSE holdout | RMSE Kaggle | estado |
 |---|---:|---:|---:|---:|---|
 | v1 | 116 669.79 ± 2 521 | 117 235.85 | 118 866.97 | 93 147 | baseline E2 pipeline + CV5 multi-seed |
-| v2 | 112 776.86 ± 2 173 | 111 536.16 | 116 706.86 | **91 399** | mejor Kaggle — parseo dual + rooms |
+| v2 | 112 776.86 ± 2 173 | 111 536.16 | 116 706.86 | **91 399** | parseo dual + rooms |
 | v3 | 112 884.00 ± 2 185 | 111 555.58 | 116 821.38 | — | log-transforms — NO mejora |
-| **v4** | **112 300.31 ± 2 191** | **110 491.77** | 116 114.84 | 91 595 | **campeón local** — barrio cleanup; Kaggle −196 vs v2 (shift leve) |
+| v4 | 112 300.31 ± 2 191 | 110 491.77 | 116 114.84 | 91 595 | barrio cleanup — campeón local previo; Kaggle −196 vs v2 |
 | v5 | 112 441.41 ± 2 138 | 111 293.00 | 116 949.35 | — | distancias + ratios + density — NO mejora; redundante con lat/lon |
+| v6 | 114 512 (9/15 folds) | — | — | — | log(price) target — cancelado early stopping fold 9; RF minimiza RMSE en log-space → sesgo en escala original |
+| v7 | 115 552 (8/15 folds) | — | — | — | KNN m2 imputation (lat/lon) — cancelado early stopping fold 8; propiedades cercanas no comparten m2 |
+| **v8** | 111 160 ± 3 375 | 102 112 | — | **89 877 ★** | **CAMPEÓN DE ENTREGA** — mejor Kaggle propio; TF-IDF+SVD 20 comp |
+| v9 | — | — | — | — | TF-IDF+SVD 50 comp, 10k vocab — abortado timeout >6h |
+| v10 | 118 574 (2/15) | — | — | — | dedup price tests — cancelado early stopping fold 2 |
+| v11 | 106 840 ± 2 765 | 101 041 | — | 90 614 | mejor local (CV5 −4 320 vs v8) pero distribution shift en Kaggle (+736 vs v8); NO es la entrega |
 
 ## Directiva: experimentos fallidos como aprendizaje
 
@@ -324,22 +332,31 @@ Notebook base provista: `Colab_Base_para_el_Trabajo_Práctico_(Entrega_2).ipynb`
 #### Lecciones aprendidas
 
 - **v1 → baseline E3 + CV5 multi-seed**. Primera corrida E3 con el pipeline exacto de E2-v4 más la infraestructura nueva (CV5 multi-seed 3 seeds × 5 folds, holdout temporal, ResumableRunner). Kaggle 93 147 — alineado con E2-v4 (93 151), confirma que la infraestructura no introdujo ruido. HP fijos en `n_estimators=500`, `max_depth=50` (sweep habilitado pero no corrido todavía).
-- **v2 → parseo dual + rooms (CAMPEÓN ACTUAL)**. Fallback de `features` a `description` para m2/dormitorios/baños cuando NaN; agrega `rooms` (ambientes desde patrón `X amb`). Rescata ~1 192 m2, ~88 dormitorios, ~186 baños en train. CV5 baja 3 893 puntos, holdout temporal baja 5 700 puntos — ambos por encima del umbral de 1 500. Kaggle: **91 399** (−1 748 vs campeón anterior). Lección: recuperar valores reales de m2 (en lugar de mediana imputable) mejora los splits del RF en la variable de mayor importancia — efecto real, no artefacto de validación.
+- **v2 → parseo dual + rooms**. Fallback de `features` a `description` para m2/dormitorios/baños cuando NaN; agrega `rooms` (ambientes desde patrón `X amb`). Rescata ~1 192 m2, ~88 dormitorios, ~186 baños en train. CV5 baja 3 893 puntos, holdout temporal baja 5 700 puntos — ambos por encima del umbral de 1 500. Kaggle: **91 399** (−1 748 vs campeón anterior). Lección: recuperar valores reales de m2 (en lugar de mediana imputable) mejora los splits del RF en la variable de mayor importancia — efecto real, no artefacto de validación.
 - **v3 → log-transforms (DESCARTADO)**. `log1p(m2, n_dormitorios, n_banos, len_descripcion, n_features)` como columnas nuevas. CV5 empeoró ligeramente (112 884 vs 112 777, delta +107). **Aprendizaje clave**: los árboles de decisión son invariantes a transformaciones monótonas de las features — el split-finding ya encuentra los umbrales óptimos en cualquier escala. Agregar columnas `log1p_*` junto a las originales solo aumenta la dimensionalidad sin añadir información nueva. Log-transforms NO aplican a RF (sí aplican a regresión lineal, redes neuronales, etc.).
 - **v4 → barrio cleanup (CAMPEÓN LOCAL)**. Cascada: Hot Deck por descripción normalizada → KNN(lat/lon, k=5) → "desconocido"; colapso barrios ≤10 obs → "barrio_raro". CV5 +477, holdout temporal +1,044. Kaggle retrocede 196 puntos vs v2 — señal de distribution shift leve (KNN puede asignar barrios que el test espera como "desconocido", cambiando la distribución de `barrio_id`). Aprendizaje: el barrio cleanup mejora la señal interna pero puede introducir ruido en test si la distribución de barrios en test es diferente al entrenamiento.
 - **v5 → distancias + m2_per_room + BallTree density (DESCARTADO)**. Distancias euclídeas (×111 km) a centroides de los 10 barrios más frecuentes, ratios `m2_per_room`/`m2_per_bano`, densidad `density_k10` (media de distancias a k=10 vecinos más cercanos vía BallTree haversine). CV5 112 441 vs 112 300 de v4 (+141); holdout temporal 111 293 vs 110 492 (+801). Ambas métricas peores. **Aprendizaje**: el RF ya tiene `lat` y `lon` como features — puede derivar implícitamente distancias a cualquier punto haciendo splits en esas dos variables. Las distancias a centroides son transformaciones redundantes de información que el modelo ya posee. `m2_per_room` es información que el RF extrae con un split conjunto de `m2` y `n_dormitorios`, por lo que la columna no agrega señal. `density_k10` correlaciona fuertemente con `lat`/`lon` (la densidad urbana tiene gradiente geográfico claro), duplicando información.
-- **v6 → log(price) target transform (en curso)**. Fit del RF en `log(price)`, predicción en `exp(ŷ)`. Motivación: decil 9 de price aporta 59.4% del RMSE con `mean_signed = +175 738` — subestimación sistemática de propiedades caras. Log comprime la cola derecha y alinea la distribución del target con lo que el RF puede modelar linealmente en el espacio de splits. RMSE siempre en USD original para comparabilidad.
+- **v6 → log(price) target transform (CANCELADO — early stopping fold 9)**. Fit del RF en `log(price)`, predicción en `exp(ŷ)`. Media parcial fold 9/15: 114 512 vs campeón 112 300. **Aprendizaje clave**: RF entrenado en `log(y)` minimiza RMSE en log-space, que equivale a minimizar MAPE — predice la mediana geométrica del target, no la media aritmética. Al aplicar `exp(ŷ)` para volver a la escala original, el sesgo hacia la media es sistemático y no se corrige con el factor `exp(σ²/2)` porque la distribución condicional de `y|X` no es log-normal perfecta con RF. Resultado: RMSE en USD original empeora pese a que el modelo ajusta mejor en log-space. No usar log(price) como target con RF cuando la métrica es RMSE en escala original.
+- **v7 → KNN m2 imputation con lat/lon (CANCELADO — early stopping fold 8)**. Imputar m2 faltante buscando k=5 vecinos geográficos más cercanos (lat/lon) en lugar de la mediana global. Media parcial fold 8/15: 115 552 vs campeón 112 300 (+3 252). **Aprendizaje**: la proximidad geográfica en CABA no predice bien el m2 — en el mismo punto pueden coexistir un monoambiente de 35 m² y un PH de 280 m² (mismo edificio, distintos pisos; o barrio mixto residencial/comercial). La mediana global captura la distribución marginal de m2 y es más robusta como imputador que KNN geográfico.
+- **v8 → TF-IDF + TruncatedSVD sobre description (CAMPEÓN DE ENTREGA — mejor Kaggle)**. 20 componentes SVD sobre TF-IDF con 5k vocab, bigramas, sublinear TF. Fit en train, transform en ambos. CV5 111 160 ± 3 375, holdout temporal 102 112, Kaggle **89 877** (mejor score Kaggle propio). Lección: la descripción libre contiene señal de precio genuinamente nueva (estado, lujo, equipamiento) que no está codificada en las features binarias ni en las numéricas. TruncatedSVD (PCA para matrices dispersas) es la técnica de Clase 08 aplicada a texto. Nota: corría con `USE_LOG_TARGET=True` (antipatrón de v6 que quedó activo), lo que penalizó el CV5 local sin afectar negativamente al Kaggle.
+- **v9 → TF-IDF+SVD escalado (50 comp, 10k vocab) (ABORTADO — timeout)**. Intento de escalar v8: 50 componentes SVD, 10k vocab, bigramas. Tres lanzamientos con timeout 7200 → 14400 → 21600s — todos fallaron por CellTimeoutError de nbclient. Root cause: TF-IDF con bigramas+10k vocab sobre 81k docs tarda ~2h solo; con 50 SVD components (90 features totales), cada fold RF toma ~500s → >6h en total. No viable en el workflow actual de nbclient (timeout por celda). Requiere workflow resiliente fuera de nbclient para reintentarlo.
+- **v10 → dedup price tests (CANCELADO — early stopping fold 2)**. Colapsar filas de train con misma `desc_norm` a mediana de precio, luego deduplicar (keep first). Media parcial fold 2/15: 118 574 (+7 414 vs campeón 111 160). **Aprendizaje**: eliminar ~10% del train para reducir label noise es contraproducente para el RF — el volumen de datos importa más que la pureza de los labels en este dataset. El RF con 500 árboles y max_depth=50 se beneficia del tamaño del train; la "redundancia" de propiedades re-publicadas en realidad aporta cobertura adicional del espacio de features.
+- **v11 → scores temáticos + SelectKBest + USE_LOG_TARGET=False (CAMPEÓN LOCAL — NO es la entrega)**. 5 scores sumando binarias por tema + SelectKBest(mutual_info_regression, k=10) — drop 6: f_alarma, f_bodega, f_calefaccion, f_cocina_equipada, f_gas_natural, f_internet + USE_LOG_TARGET=False. CV5 **106 840 ± 2 765** (−4 320 vs v8), holdout temporal **101 041** (−1 071 vs v8), Kaggle 90 614 (**+736 vs v8** — distribution shift). **Aprendizaje**: desactivar USE_LOG_TARGET fue el mayor driver de mejora local. Sin embargo, SelectKBest introdujo distribution shift: las amenities eliminadas (f_calefaccion, f_gas_natural, f_internet) tienen más señal en test que en train. Por eso v11 mejora localmente pero retrocede en Kaggle. La entrega sigue siendo v8.
 
 #### Roadmap de experimentos (orden por potencial / complejidad)
 
 | orden | versión | contenido | estado |
 |---|---|---|---|
-| 1 | v2 | parseo dual + rooms | campeón |
+| 1 | v2 | parseo dual + rooms | completado — Kaggle 91 399 |
 | 2 | v3 | log-transforms | completado — NO mejoró (RF invariante a transforms monótonas) |
-| 3 | v4 | barrio cleanup (Hot Deck → KNN → desconocido) | **campeón local** — Kaggle shift leve |
-| 4 | v5 | distancias dinámicas + m2_per_room ratio + BallTree density | **completado** — NO mejoró; redundante con lat/lon. CV5 +141, holdout +801 vs v4. |
-| 5 | v6 | log(price) target transform | **en curso** — mayor potencial esperado (decil 9 = 59.4% del RMSE) |
-| 6 | v7 | SelectKBest(mutual_info) amenities + luxury/thematic scores + TF-IDF+SVD | pendiente |
+| 3 | v4 | barrio cleanup (Hot Deck → KNN → desconocido) | completado — campeón local previo; Kaggle 91 595 |
+| 4 | v5 | distancias dinámicas + m2_per_room ratio + BallTree density | completado — NO mejoró; redundante con lat/lon |
+| 5 | v6 | log(price) target transform | cancelado — early stopping fold 9 (media 114 512 > campeón) |
+| 6 | v7 | KNN m2 imputation con lat/lon | cancelado — early stopping fold 8 (media 115 552 > campeón) |
+| 7 | **v8** | TF-IDF + TruncatedSVD (20 comp, 5k vocab) sobre description | **CAMPEÓN** — CV5 111 160, holdout 102 112, Kaggle 89 877 |
+| 8 | v9 | TF-IDF+SVD escalado (50 comp, 10k vocab) | abortado — timeout >6h; requiere workflow resiliente |
+| 9 | v10 | dedup price tests (mediana precio por desc_norm en train) | cancelado — early stopping fold 2 (media 118 574, +7 414 vs campeón); RF pierde más por menos datos que lo que gana en pureza de labels |
+| 10 | **v11** | scores temáticos (Clase 07) + SelectKBest(mutual_info, k=10) (Clase 08) + USE_LOG_TARGET=False | **CAMPEÓN** — CV5 106 840 ± 2 765, holdout 101 041, Kaggle pendiente |
 
 #### Backlog de ideas (research 2026-05-01)
 
@@ -521,9 +538,17 @@ La fuente de los aprendizajes nuevos es la sub-sección
 *"Estado de las entregas → Entrega ⟨n⟩ → Lecciones aprendidas"* de este
 documento.
 
-### Auto-submit a Kaggle
+### Auto-submit a Kaggle y definición de campeón
 
-Si el experimento mejora simultáneamente `rmse_cv5_mean` **y** `rmse_holdout_temporal` respecto al campeón anterior → es el nuevo campeón y se envía a Kaggle automáticamente. El score Kaggle se registra para detectar overfitting al leaderboard público; no cambia el campeón. `MARGEN_CV5 = MARGEN_HOLDOUT_TEMPORAL = 0` en `run_entrega.py`.
+**El campeón lo definen las métricas locales** (CV5 multi-seed + holdout temporal), no el score Kaggle público.
+
+Justificación: el Kaggle público es una estimación ruidosa sobre ~30% del test set, gameable con múltiples submissions. El CV5 multi-seed (15 fits, 3 seeds) y el holdout temporal son estadísticamente más robustos y correlacionan mejor con el private LB — que es el que determina el ranking real de la competencia.
+
+**Criterio de nuevo campeón**: mejora simultánea en `rmse_cv5_mean` **y** `rmse_holdout_temporal` vs el campeón anterior (MARGEN = 0). Si se cumple → auto-submit a Kaggle → ese experimento ES el nuevo campeón y su CSV es la entrega vigente.
+
+**Rol del score Kaggle público**: referencia para detectar distribution shift severo. Si el Kaggle retrocede >2 000 puntos respecto a la mejora local, investigar la causa antes de continuar — puede indicar leakage en CV5 o feature con drift en test. Un retroceso pequeño (~500-800) es ruido del split público y no cambia el campeón.
+
+`MARGEN_CV5 = MARGEN_HOLDOUT_TEMPORAL = 0` en `run_entrega.py`.
 
 ### Early stopping de experimentos
 
@@ -542,9 +567,17 @@ la tendencia y malgastan ~20-30 min de cómputo.
 **Umbral**: `media_parcial_fold10 > rmse_campeon`. Si hay empate o mejora
 marginal (< 200), se puede dejar correr y decidir al final.
 
-### Auto-submit a Kaggle
+### Auto-submit a Kaggle y definición de campeón
 
-Si el experimento mejora simultáneamente `rmse_cv5_mean` **y** `rmse_holdout_temporal` respecto al campeón anterior → es el nuevo campeón y se envía a Kaggle automáticamente. El score Kaggle se registra para detectar overfitting al leaderboard público; no cambia el campeón. `MARGEN_CV5 = MARGEN_HOLDOUT_TEMPORAL = 0` en `run_entrega.py`.
+**El campeón lo definen las métricas locales** (CV5 multi-seed + holdout temporal), no el score Kaggle público.
+
+Justificación: el Kaggle público es una estimación ruidosa sobre ~30% del test set, gameable con múltiples submissions. El CV5 multi-seed (15 fits, 3 seeds) y el holdout temporal son estadísticamente más robustos y correlacionan mejor con el private LB — que es el que determina el ranking real de la competencia.
+
+**Criterio de nuevo campeón**: mejora simultánea en `rmse_cv5_mean` **y** `rmse_holdout_temporal` vs el campeón anterior (MARGEN = 0). Si se cumple → auto-submit a Kaggle → ese experimento ES el nuevo campeón y su CSV es la entrega vigente.
+
+**Rol del score Kaggle público**: referencia para detectar distribution shift severo. Si el Kaggle retrocede >2 000 puntos respecto a la mejora local, investigar la causa antes de continuar — puede indicar leakage en CV5 o feature con drift en test. Un retroceso pequeño (~500-800) es ruido del split público y no cambia el campeón.
+
+`MARGEN_CV5 = MARGEN_HOLDOUT_TEMPORAL = 0` en `run_entrega.py`.
 
 ### Disciplina experimental (válida para cualquier entrega)
 
